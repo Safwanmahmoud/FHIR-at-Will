@@ -69,6 +69,19 @@ services:
       - "8081"
     restart: unless-stopped
 
+  # Disposable real FHIR target for the opt-in delivery integration test:
+  #   docker compose --profile integration up -d hapi
+  #   FHIR_TARGET_URL=http://localhost:8090/fhir uv run pytest \
+  #     tests/integration/test_delivery_target.py
+  hapi:
+    profiles: ["integration"]
+    image: hapiproject/hapi:v8.10.0-3
+    ports:
+      - "${HAPI_PORT:-8090}:8080"
+    volumes:
+      - hapi-data:/data/hapi
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -123,3 +136,4 @@ services:
 
 volumes:
   postgres-data:
+  hapi-data:

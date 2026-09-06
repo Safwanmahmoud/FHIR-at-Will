@@ -20,7 +20,16 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 from fhirbridge.storage.base import append_only_sql, rls_policy_sql
-from fhirbridge.storage.models import APPEND_ONLY_TABLES, TENANT_SCOPED_TABLES
+
+_INITIAL_TENANT_SCOPED_TABLES = (
+    "tenants",
+    "users",
+    "api_keys",
+    "policies",
+    "audit_events",
+    "idempotency_keys",
+)
+_INITIAL_APPEND_ONLY_TABLES = ("audit_events",)
 
 revision: str = "0001"
 down_revision: str | None = None
@@ -229,21 +238,21 @@ def upgrade() -> None:
     op.create_index("ix_idempotency_keys_tenant_id", "idempotency_keys", ["tenant_id"])
     op.create_index("ix_idempotency_keys_expires_at", "idempotency_keys", ["expires_at"])
 
-    for table in TENANT_SCOPED_TABLES:
+    for table in _INITIAL_TENANT_SCOPED_TABLES:
         for statement in rls_policy_sql(table):
             op.execute(statement)
 
-    for table in APPEND_ONLY_TABLES:
+    for table in _INITIAL_APPEND_ONLY_TABLES:
         for statement in append_only_sql(table):
             op.execute(statement)
 
 
 def downgrade() -> None:
-    for table in APPEND_ONLY_TABLES:
+    for table in _INITIAL_APPEND_ONLY_TABLES:
         op.execute(f"DROP TRIGGER IF EXISTS {table}_append_only ON {table}")
         op.execute(f"DROP FUNCTION IF EXISTS {table}_forbid_mutation()")
 
-    for table in TENANT_SCOPED_TABLES:
+    for table in _INITIAL_TENANT_SCOPED_TABLES:
         op.execute(f"DROP POLICY IF EXISTS {table}_tenant_isolation ON {table}")
 
     op.drop_table("idempotency_keys")

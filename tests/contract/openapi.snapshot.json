@@ -53,6 +53,113 @@
         "title": "AssemblyNote",
         "type": "object"
       },
+      "BindingAction": {
+        "enum": [
+          "bound",
+          "unbound",
+          "ambiguous"
+        ],
+        "title": "BindingAction",
+        "type": "string"
+      },
+      "BindingInfo": {
+        "additionalProperties": false,
+        "description": "Binding coverage and the versioned evidence supporting it.",
+        "properties": {
+          "ambiguous": {
+            "minimum": 0.0,
+            "title": "Ambiguous",
+            "type": "integer"
+          },
+          "bound": {
+            "minimum": 0.0,
+            "title": "Bound",
+            "type": "integer"
+          },
+          "eligible": {
+            "minimum": 0.0,
+            "title": "Eligible",
+            "type": "integer"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/BindingNote"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "table_version": {
+            "title": "Table Version",
+            "type": "string"
+          },
+          "unbound": {
+            "minimum": 0.0,
+            "title": "Unbound",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "table_version",
+          "eligible",
+          "bound",
+          "unbound",
+          "ambiguous"
+        ],
+        "title": "BindingInfo",
+        "type": "object"
+      },
+      "BindingNote": {
+        "additionalProperties": false,
+        "description": "PHI-free evidence for one terminology binding attempt.",
+        "properties": {
+          "action": {
+            "$ref": "#/components/schemas/BindingAction"
+          },
+          "candidate_count": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Candidate Count",
+            "type": "integer"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "element": {
+            "title": "Element",
+            "type": "string"
+          },
+          "entry_index": {
+            "minimum": 0.0,
+            "title": "Entry Index",
+            "type": "integer"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          },
+          "value_set": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Set"
+          }
+        },
+        "required": [
+          "entry_index",
+          "resource_type",
+          "element",
+          "action",
+          "detail"
+        ],
+        "title": "BindingNote",
+        "type": "object"
+      },
       "Body_voice2fhir_v1_VOICE2FHIR_post": {
         "properties": {
           "audio": {
@@ -98,6 +205,10 @@
           },
           "deid_profile": {
             "title": "Deid Profile",
+            "type": "string"
+          },
+          "delivery_mode": {
+            "title": "Delivery Mode",
             "type": "string"
           },
           "endpoints_implemented": {
@@ -172,7 +283,8 @@
           "min_qualification_tier",
           "deid_mode",
           "deid_profile",
-          "deid_allow_audio_egress"
+          "deid_allow_audio_egress",
+          "delivery_mode"
         ],
         "title": "CapabilitiesResponse",
         "type": "object"
@@ -210,6 +322,9 @@
             "title": "Assembly",
             "type": "array"
           },
+          "binding": {
+            "$ref": "#/components/schemas/BindingInfo"
+          },
           "bundle": {
             "additionalProperties": true,
             "description": "The generated FHIR R4 Bundle.",
@@ -238,6 +353,7 @@
         "required": [
           "conversion_id",
           "bundle",
+          "binding",
           "llm",
           "deid"
         ],
@@ -374,6 +490,117 @@
         "title": "DeidentifyResponse",
         "type": "object"
       },
+      "DeliverRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle": {
+            "additionalProperties": true,
+            "title": "Bundle",
+            "type": "object"
+          },
+          "context": {
+            "$ref": "#/components/schemas/SubjectContextRequest"
+          },
+          "conversion_id": {
+            "title": "Conversion Id",
+            "type": "string"
+          },
+          "human_attested": {
+            "default": false,
+            "title": "Human Attested",
+            "type": "boolean"
+          },
+          "max_terminology_checks": {
+            "default": 500,
+            "maximum": 2000.0,
+            "minimum": 1.0,
+            "title": "Max Terminology Checks",
+            "type": "integer"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Profiles",
+            "type": "array"
+          },
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Za-z0-9._-]{1,64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque reviewer identifier; never a name or email address.",
+            "title": "Reviewer Id"
+          }
+        },
+        "required": [
+          "conversion_id",
+          "bundle",
+          "context"
+        ],
+        "title": "DeliverRequest",
+        "type": "object"
+      },
+      "DeliverResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/WritePlan"
+          },
+          "receipt": {
+            "$ref": "#/components/schemas/DeliveryReceipt"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationReport"
+          }
+        },
+        "required": [
+          "validation",
+          "plan",
+          "receipt"
+        ],
+        "title": "DeliverResponse",
+        "type": "object"
+      },
+      "DeliveryReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "delivery_id": {
+            "title": "Delivery Id",
+            "type": "string"
+          },
+          "resource_count": {
+            "title": "Resource Count",
+            "type": "integer"
+          },
+          "response_status": {
+            "title": "Response Status",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "delivery_id",
+          "target_id",
+          "status",
+          "response_status",
+          "resource_count"
+        ],
+        "title": "DeliveryReceipt",
+        "type": "object"
+      },
       "DependencyHealthResponse": {
         "additionalProperties": false,
         "description": "Body of ``GET /v1/health/dependencies``.",
@@ -505,6 +732,14 @@
         ],
         "title": "DictationCallInfo",
         "type": "object"
+      },
+      "FailurePolicy": {
+        "enum": [
+          "atomic_transaction",
+          "stop_on_first_error"
+        ],
+        "title": "FailurePolicy",
+        "type": "string"
       },
       "HTTPValidationError": {
         "properties": {
@@ -745,12 +980,117 @@
         "title": "LlmCallInfo",
         "type": "object"
       },
+      "PlanNote": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "detail": {
+            "description": "PHI-free reason; never an element value.",
+            "title": "Detail",
+            "type": "string"
+          },
+          "element": {
+            "title": "Element",
+            "type": "string"
+          },
+          "entry_index": {
+            "minimum": 0.0,
+            "title": "Entry Index",
+            "type": "integer"
+          },
+          "resource_type": {
+            "title": "Resource Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entry_index",
+          "resource_type",
+          "element",
+          "action",
+          "detail"
+        ],
+        "title": "PlanNote",
+        "type": "object"
+      },
+      "PlanStepStatus": {
+        "enum": [
+          "ready",
+          "blocked",
+          "excluded"
+        ],
+        "title": "PlanStepStatus",
+        "type": "string"
+      },
+      "PreflightCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "title": "Check",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PreflightStatus"
+          }
+        },
+        "required": [
+          "check",
+          "status",
+          "detail"
+        ],
+        "title": "PreflightCheck",
+        "type": "object"
+      },
+      "PreflightReport": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PreflightCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PreflightStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "PreflightReport",
+        "type": "object"
+      },
+      "PreflightStatus": {
+        "enum": [
+          "passed",
+          "failed",
+          "skipped"
+        ],
+        "title": "PreflightStatus",
+        "type": "string"
+      },
       "ReportVersions": {
         "additionalProperties": false,
         "description": "The full version set required by principle 2.8.",
         "properties": {
+          "binding_table": {
+            "title": "Binding Table",
+            "type": "string"
+          },
           "code": {
             "title": "Code",
+            "type": "string"
+          },
+          "delivery_plan_schema": {
+            "title": "Delivery Plan Schema",
             "type": "string"
           },
           "fhir": {
@@ -785,6 +1125,10 @@
           },
           "report_schema": {
             "title": "Report Schema",
+            "type": "string"
+          },
+          "target_descriptor": {
+            "title": "Target Descriptor",
             "type": "string"
           },
           "terminology": {
@@ -822,7 +1166,10 @@
           "code",
           "report_schema",
           "fhir",
-          "typed_models"
+          "typed_models",
+          "binding_table",
+          "target_descriptor",
+          "delivery_plan_schema"
         ],
         "title": "ReportVersions",
         "type": "object"
@@ -836,6 +1183,94 @@
         ],
         "title": "RoutingDecision",
         "type": "string"
+      },
+      "SubjectContextRequest": {
+        "additionalProperties": false,
+        "description": "Destination-native chart identity; never inferred from narrative.",
+        "properties": {
+          "author_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Ref"
+          },
+          "encounter_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Ref"
+          },
+          "encounter_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Encounter Start"
+          },
+          "patient_ref": {
+            "title": "Patient Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "patient_ref"
+        ],
+        "title": "SubjectContextRequest",
+        "type": "object"
+      },
+      "TargetInfo": {
+        "additionalProperties": false,
+        "properties": {
+          "failure_policy": {
+            "$ref": "#/components/schemas/FailurePolicy"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "failure_policy"
+        ],
+        "title": "TargetInfo",
+        "type": "object"
+      },
+      "TargetsResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/TargetInfo"
+            },
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "targets"
+        ],
+        "title": "TargetsResponse",
+        "type": "object"
       },
       "ValidateRequest": {
         "additionalProperties": false,
@@ -1210,8 +1645,16 @@
         "additionalProperties": false,
         "description": "Body of ``GET /version`` \u2014 the pins required by principle 2.8.",
         "properties": {
+          "binding_table_version": {
+            "title": "Binding Table Version",
+            "type": "string"
+          },
           "deid_ruleset_version": {
             "title": "Deid Ruleset Version",
+            "type": "string"
+          },
+          "delivery_plan_schema_version": {
+            "title": "Delivery Plan Schema Version",
             "type": "string"
           },
           "environment": {
@@ -1239,6 +1682,10 @@
           },
           "service": {
             "title": "Service",
+            "type": "string"
+          },
+          "target_descriptor_version": {
+            "title": "Target Descriptor Version",
             "type": "string"
           },
           "typed_model_fhir_version": {
@@ -1276,6 +1723,9 @@
           "deid_ruleset_version",
           "fact_schema_version",
           "validation_report_schema_version",
+          "binding_table_version",
+          "target_descriptor_version",
+          "delivery_plan_schema_version",
           "ig_packages",
           "environment"
         ],
@@ -1293,6 +1743,9 @@
             },
             "title": "Assembly",
             "type": "array"
+          },
+          "binding": {
+            "$ref": "#/components/schemas/BindingInfo"
           },
           "bundle": {
             "additionalProperties": true,
@@ -1330,12 +1783,192 @@
         "required": [
           "conversion_id",
           "bundle",
+          "binding",
           "llm",
           "deid",
           "transcript",
           "transcription"
         ],
         "title": "VoiceConvertResponse",
+        "type": "object"
+      },
+      "WritePlan": {
+        "additionalProperties": false,
+        "properties": {
+          "conversion_id": {
+            "title": "Conversion Id",
+            "type": "string"
+          },
+          "descriptor_version": {
+            "title": "Descriptor Version",
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/components/schemas/PlanNote"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "preflight": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PreflightReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/WriteStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "target_id": {
+            "title": "Target Id",
+            "type": "string"
+          },
+          "transaction": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transaction"
+          }
+        },
+        "required": [
+          "conversion_id",
+          "target_id",
+          "descriptor_version",
+          "ready"
+        ],
+        "title": "WritePlan",
+        "type": "object"
+      },
+      "WritePlanRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "bundle": {
+            "additionalProperties": true,
+            "title": "Bundle",
+            "type": "object"
+          },
+          "context": {
+            "$ref": "#/components/schemas/SubjectContextRequest"
+          },
+          "conversion_id": {
+            "title": "Conversion Id",
+            "type": "string"
+          },
+          "max_terminology_checks": {
+            "default": 500,
+            "maximum": 2000.0,
+            "minimum": 1.0,
+            "title": "Max Terminology Checks",
+            "type": "integer"
+          },
+          "profiles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Profiles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "conversion_id",
+          "bundle",
+          "context"
+        ],
+        "title": "WritePlanRequest",
+        "type": "object"
+      },
+      "WritePlanResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/WritePlan"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/ValidationReport"
+          }
+        },
+        "required": [
+          "validation",
+          "plan"
+        ],
+        "title": "WritePlanResponse",
+        "type": "object"
+      },
+      "WriteStep": {
+        "additionalProperties": false,
+        "properties": {
+          "depends_on": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Depends On",
+            "type": "array"
+          },
+          "entry_index": {
+            "minimum": 0.0,
+            "title": "Entry Index",
+            "type": "integer"
+          },
+          "idempotency_key": {
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "resource": {
+            "additionalProperties": true,
+            "title": "Resource",
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStepStatus"
+          },
+          "step_index": {
+            "minimum": 0.0,
+            "title": "Step Index",
+            "type": "integer"
+          },
+          "target_api": {
+            "title": "Target Api",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step_index",
+          "entry_index",
+          "target_api",
+          "method",
+          "url",
+          "resource",
+          "idempotency_key",
+          "status"
+        ],
+        "title": "WriteStep",
         "type": "object"
       }
     },
@@ -1924,6 +2557,150 @@
         ]
       }
     },
+    "/v1/deliver": {
+      "post": {
+        "operationId": "post_deliver",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Target-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Target-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Target-Base-Url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Target-Base-Url"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Target-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Target-Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-PHI-Egress-Acknowledged",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Phi-Egress-Acknowledged"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliverResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Deliver",
+        "tags": [
+          "delivery"
+        ]
+      }
+    },
     "/v1/error-codes": {
       "get": {
         "description": "Publish the error catalogue as a FHIR ``CodeSystem``.\n\nUnauthenticated on purpose: it contains no tenant data, and a client should\nbe able to fetch the code list before it has credentials.",
@@ -2061,6 +2838,60 @@
         "summary": "Implementation guides this deployment validates against",
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/v1/targets": {
+      "get": {
+        "operationId": "get_targets",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TargetsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Targets",
+        "tags": [
+          "delivery"
         ]
       }
     },
@@ -2216,6 +3047,134 @@
         "summary": "Validate and return a FHIR OperationOutcome instead of a report",
         "tags": [
           "validation"
+        ]
+      }
+    },
+    "/v1/write-plan": {
+      "post": {
+        "operationId": "post_write_plan",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Target-Id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Target-Id"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Target-Base-Url",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Target-Base-Url"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Target-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Target-Token"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-PHI-Egress-Acknowledged",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Phi-Egress-Acknowledged"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WritePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WritePlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Write Plan",
+        "tags": [
+          "delivery"
         ]
       }
     },

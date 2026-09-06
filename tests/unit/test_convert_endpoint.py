@@ -11,12 +11,18 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import pytest
 from fastapi import FastAPI
 
 from fhirbridge.api.auth import Principal
 from fhirbridge.api.deps import get_llm_gateway, get_principal
 from fhirbridge.domain.errors import EgressBlockedError, LlmSchemaViolationError
-from fhirbridge.fhir.tags import AI_DERIVED, MACHINE_INFERRED, PROVENANCE_TAG_SYSTEM
+from fhirbridge.fhir.tags import (
+    AI_DERIVED,
+    MACHINE_CODED,
+    MACHINE_INFERRED,
+    PROVENANCE_TAG_SYSTEM,
+)
 from tests.fakes import FakeLlmGateway
 
 EXTRACTED = {
@@ -52,6 +58,11 @@ BYOK_HEADERS = {
 
 def nar2fhir_gateway() -> FakeLlmGateway:
     return FakeLlmGateway(resource=EXTRACTED)
+
+
+@pytest.fixture(autouse=True)
+def _binding_terminology(terminology_valid: object) -> None:
+    del terminology_valid
 
 
 def resource_at(body: dict, resource_type: str) -> dict:
@@ -114,8 +125,10 @@ class TestConvert:
         ).json()
 
         observation = resource_at(body, "Observation")
-        assert observation["code"] == {"text": "heart rate"}
-        assert observation["valueQuantity"] == {"value": 72, "unit": "/min"}
+        assert observation["code"]["text"] == "heart rate"
+        assert observation["code"]["coding"][0]["code"] == "8867-4"
+        assert observation["valueQuantity"]["value"] == 72
+        assert observation["valueQuantity"]["code"] == "/min"
         assert observation["subject"]["reference"] == body["bundle"]["entry"][0]["fullUrl"]
 
     async def test_the_same_entities_produce_the_same_bundle_content(
@@ -164,7 +177,7 @@ class TestConvert:
             for coding in observation["meta"]["tag"]
             if coding["system"] == PROVENANCE_TAG_SYSTEM
         }
-        assert codes == {AI_DERIVED, MACHINE_INFERRED}
+        assert codes == {AI_DERIVED, MACHINE_CODED, MACHINE_INFERRED}
 
         patient = resource_at(body, "Patient")
         patient_codes = {coding["code"] for coding in patient["meta"]["tag"]}

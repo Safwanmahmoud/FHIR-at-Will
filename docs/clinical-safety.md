@@ -22,6 +22,12 @@ reproducible but is not evidence about the patient. `POST /v1/NAR2FHIR` reports
 every inferred element, and every element it could not ground, in the response's
 `assembly` list; that list is the record to review, not the tag alone.
 
+`machine-coded` means a reviewed deterministic table proposed a code and the
+configured terminology server verified it. The original wording remains in
+`CodeableConcept.text`; the tag is not evidence that a human selected the code.
+The conversion response's `binding` field reports every bound, unbound, and
+ambiguous concept and the binding-table version.
+
 `POST /v1/VOICE2FHIR` transcribes dictated audio before conversion. Transcription
 is a silent failure surface: a dropped `no`, a misheard dose, or an added word
 becomes ground truth for extraction, and no downstream layer can recover it

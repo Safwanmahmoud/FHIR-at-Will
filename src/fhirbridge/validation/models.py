@@ -198,6 +198,9 @@ class ReportVersions(BaseModel):
         )
     )
     prompt_set: str | None = None
+    binding_table: str
+    target_descriptor: str
+    delivery_plan_schema: str
     ig: list[str] = Field(default_factory=list)
     validator: str | None = None
     terminology: dict[str, str | None] = Field(default_factory=dict)

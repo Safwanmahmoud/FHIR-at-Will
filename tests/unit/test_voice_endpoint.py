@@ -9,6 +9,7 @@ guards the audio -- not how either provider call was made over the wire.
 from __future__ import annotations
 
 import httpx
+import pytest
 from fastapi import FastAPI
 
 from fhirbridge.api.auth import Principal
@@ -48,6 +49,11 @@ WAV = ("dictation.wav", b"RIFF....audio-bytes....", "audio/wav")
 
 def voice_gateway() -> FakeLlmGateway:
     return FakeLlmGateway(resource=EXTRACTED, transcript="Heart rate seventy two.")
+
+
+@pytest.fixture(autouse=True)
+def _binding_terminology(terminology_valid: object) -> None:
+    del terminology_valid
 
 
 class TestVoiceConvert:
@@ -107,7 +113,8 @@ class TestVoiceConvert:
             for entry in body["bundle"]["entry"]
             if entry["resource"]["resourceType"] == "Observation"
         )
-        assert observation["valueQuantity"] == {"value": 72, "unit": "/min"}
+        assert observation["valueQuantity"]["value"] == 72
+        assert observation["valueQuantity"]["code"] == "/min"
         assert body["assembly"], "required elements the audio did not state should be reported"
 
     async def test_a_content_type_free_upload_falls_back_to_the_extension(

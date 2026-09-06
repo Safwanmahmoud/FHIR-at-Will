@@ -31,9 +31,12 @@ from fhirbridge.api.deps import (
     LlmInvocationDep,
     PrincipalDep,
     SettingsDep,
+    TerminologyDep,
 )
 from fhirbridge.api.schemas import (
     AssemblyNote,
+    BindingInfo,
+    BindingNote,
     ConvertRequest,
     ConvertResponse,
     DeidInfo,
@@ -118,6 +121,29 @@ def assembly_notes_of(assembled: AssembledBundle) -> list[AssemblyNote]:
     ]
 
 
+def binding_info_of(bound: Any) -> BindingInfo:
+    """Map binding evidence without exposing source text."""
+    return BindingInfo(
+        table_version=bound.table_version,
+        eligible=bound.coverage.eligible,
+        bound=bound.coverage.bound,
+        unbound=bound.coverage.unbound,
+        ambiguous=bound.coverage.ambiguous,
+        notes=[
+            BindingNote(
+                entry_index=note.entry_index,
+                resource_type=note.resource_type,
+                element=note.element,
+                action=note.action,
+                value_set=note.value_set,
+                candidate_count=note.candidate_count,
+                detail=note.detail,
+            )
+            for note in bound.notes
+        ],
+    )
+
+
 def llm_call_info_of(extraction: LlmResult, invocation: LlmInvocation) -> LlmCallInfo:
     """Build the extraction-call provenance shared by both conversion endpoints."""
     return LlmCallInfo(
@@ -142,6 +168,7 @@ async def nar2fhir(
     invocation: LlmInvocationDep,
     gateway: LlmGatewayDep,
     settings: SettingsDep,
+    terminology: TerminologyDep,
     response: Response,
 ) -> ConvertResponse:
     """Extract grounded facts and assemble them into an unvalidated FHIR Bundle."""
@@ -154,6 +181,7 @@ async def nar2fhir(
         invocation=invocation,
         conversion_id=conversion_id,
         policy=DeidPolicy.from_settings(settings),
+        terminology=terminology,
         declared_identifiers=declared_identifiers_of(body.known_identifiers),
     )
     assembled = result.assembled
@@ -179,9 +207,10 @@ async def nar2fhir(
     response.headers["Cache-Control"] = "no-store"
     return ConvertResponse(
         conversion_id=conversion_id,
-        bundle=assembled.bundle,
+        bundle=result.binding.bundle,
         validated=False,
         assembly=assembly_notes_of(assembled),
+        binding=binding_info_of(result.binding),
         llm=llm_call_info_of(result.extraction, invocation),
         deid=deid_info_of(result.deid),
     )
@@ -189,6 +218,7 @@ async def nar2fhir(
 
 __all__ = [
     "assembly_notes_of",
+    "binding_info_of",
     "declared_identifiers_of",
     "deid_info_of",
     "llm_call_info_of",

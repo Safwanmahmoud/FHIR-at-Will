@@ -59,6 +59,7 @@ class ErrorCode(StrEnum):
     # --- Dependencies: these fail closed (principle 2.4) ------------------
     TERMINOLOGY_UNAVAILABLE = "terminology-unavailable"
     VALIDATOR_UNAVAILABLE = "validator-unavailable"
+    TARGET_UNAVAILABLE = "target-unavailable"
 
     # --- Documents and conversion ----------------------------------------
     UNREADABLE_DOCUMENT = "unreadable-document"
@@ -179,7 +180,7 @@ ERROR_SPECS: Final[dict[ErrorCode, ErrorSpec]] = dict(
             ErrorCode.EGRESS_BLOCKED,
             451,
             "forbidden",
-            "The requested LLM endpoint is blocked by egress policy",
+            "The requested external endpoint is blocked by egress policy",
         ),
         _spec(
             ErrorCode.PHI_EGRESS_NOT_ACKNOWLEDGED,
@@ -236,6 +237,13 @@ ERROR_SPECS: Final[dict[ErrorCode, ErrorSpec]] = dict(
             503,
             "transient",
             "The FHIR validator is unavailable; failing closed",
+            retryable=True,
+        ),
+        _spec(
+            ErrorCode.TARGET_UNAVAILABLE,
+            503,
+            "transient",
+            "The delivery target is unavailable; failing closed",
             retryable=True,
         ),
         _spec(ErrorCode.UNREADABLE_DOCUMENT, 422, "processing", "The document could not be read"),
@@ -517,6 +525,10 @@ class TerminologyUnavailableError(DependencyUnavailableError):
     code = ErrorCode.TERMINOLOGY_UNAVAILABLE
 
 
+class TargetUnavailableError(DependencyUnavailableError):
+    code = ErrorCode.TARGET_UNAVAILABLE
+
+
 # --- BYOK / LLM errors (AGENTS.md 7); raised from M2 onward ----------------
 # The specs (status, issue-type, category) already live in ERROR_SPECS above;
 # these are the concrete exception types handlers and the gateway raise.
@@ -694,6 +706,7 @@ __all__ = [
     "PhiMinimizationUnavailableError",
     "PlatformError",
     "SafeContext",
+    "TargetUnavailableError",
     "TerminologyUnavailableError",
     "UnauthenticatedError",
     "UnreadableDocumentError",

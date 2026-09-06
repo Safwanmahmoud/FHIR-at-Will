@@ -15,6 +15,7 @@ from fhirbridge.fhir.tags import (
     AI_DERIVED,
     ALL_TAGS,
     HUMAN_REVIEWED,
+    MACHINE_CODED,
     MACHINE_INFERRED,
     NONDETERMINISM_RISK,
     PROVENANCE_TAG_SYSTEM,
@@ -29,6 +30,7 @@ def test_the_required_tags_exist_with_their_published_codes() -> None:
     assert UNQUALIFIED_MODEL == "unqualified-model"
     assert NONDETERMINISM_RISK == "nondeterminism-risk"
     assert MACHINE_INFERRED == "machine-inferred"
+    assert MACHINE_CODED == "machine-coded"
 
 
 def test_all_tags_lists_every_code_exactly_once() -> None:
@@ -39,6 +41,7 @@ def test_all_tags_lists_every_code_exactly_once() -> None:
         UNQUALIFIED_MODEL,
         NONDETERMINISM_RISK,
         MACHINE_INFERRED,
+        MACHINE_CODED,
     }
 
 

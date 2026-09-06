@@ -12,6 +12,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from fhirbridge.binding.bind import bind_bundle
+from fhirbridge.binding.models import BoundBundle
 from fhirbridge.deid.detectors import DeclaredIdentifier
 from fhirbridge.deid.minimize import DeidReport, minimize
 from fhirbridge.deid.policy import DeidPolicy
@@ -20,6 +22,7 @@ from fhirbridge.llm.gateway import LlmGateway, LlmResult
 from fhirbridge.llm.invocation import LlmInvocation
 from fhirbridge.llm.nar2fhir import parse_entities
 from fhirbridge.llm.prompts import NARRATIVE_TO_ENTITIES
+from fhirbridge.terminology.interface import TerminologyClient
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +34,7 @@ class ConversionResult:
     """
 
     assembled: AssembledBundle
+    binding: BoundBundle
     extraction: LlmResult
     deid: DeidReport
 
@@ -42,6 +46,7 @@ async def convert_narrative(
     invocation: LlmInvocation,
     conversion_id: str,
     policy: DeidPolicy,
+    terminology: TerminologyClient,
     declared_identifiers: Sequence[DeclaredIdentifier] = (),
 ) -> ConversionResult:
     """Extract grounded facts from ``text`` and assemble them into a FHIR Bundle.
@@ -61,8 +66,14 @@ async def convert_narrative(
         entities = parse_entities(extraction.resource)
         restored = minimization.restore_entities(entities)
         assembled = assemble_bundle(restored, seed=conversion_id)
+        binding = await bind_bundle(assembled.bundle, client=terminology)
         report = minimization.report()
-        return ConversionResult(assembled=assembled, extraction=extraction, deid=report)
+        return ConversionResult(
+            assembled=assembled,
+            binding=binding,
+            extraction=extraction,
+            deid=report,
+        )
     finally:
         minimization.close()
 

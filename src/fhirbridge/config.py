@@ -78,6 +78,14 @@ class CredentialStorage(StrEnum):
     EXTERNAL_SECRETS = "external_secrets"
 
 
+class DeliveryMode(StrEnum):
+    """How far the delivery plane may progress."""
+
+    OFF = "off"
+    PLAN_ONLY = "plan_only"
+    SUBMIT = "submit"
+
+
 class QualificationTier(StrEnum):
     """Model qualification tiers (AGENTS.md 7.5), ordered worst to best."""
 
@@ -262,6 +270,8 @@ class Settings(BaseSettings):
     credential_storage: CredentialStorage = Field(
         default=CredentialStorage.DISABLED, validation_alias="CREDENTIAL_STORAGE"
     )
+    delivery_mode: DeliveryMode = Field(default=DeliveryMode.OFF, validation_alias="DELIVERY_MODE")
+    target_egress_allowlist: CsvList = Field(validation_alias="TARGET_EGRESS_ALLOWLIST")
     max_cost_usd_per_conversion: Decimal = Field(
         default=Decimal("1.00"), ge=0, validation_alias="MAX_COST_USD_PER_CONVERSION"
     )
@@ -304,7 +314,12 @@ class Settings(BaseSettings):
     debug_capture_llm_io: bool = Field(default=False, validation_alias="DEBUG_CAPTURE_LLM_IO")
 
     # --- Validators -------------------------------------------------------
-    @field_validator("llm_allowed_providers", "llm_egress_allowlist", mode="before")
+    @field_validator(
+        "llm_allowed_providers",
+        "llm_egress_allowlist",
+        "target_egress_allowlist",
+        mode="before",
+    )
     @classmethod
     def _split_csv(cls, value: object) -> object:
         if isinstance(value, str):
@@ -412,6 +427,13 @@ class Settings(BaseSettings):
                 f"{self.credential_storage} (envelope encryption has no key to wrap DEKs with)"
             )
 
+        if self.delivery_mode is DeliveryMode.SUBMIT and not (
+            self.target_egress_allowlist or self.local_only_mode
+        ):
+            problems.append(
+                "DELIVERY_MODE=submit requires TARGET_EGRESS_ALLOWLIST or LOCAL_ONLY_MODE=true"
+            )
+
         if self.terminology_auth_mode is TerminologyAuthMode.BASIC and not (
             self.terminology_username and self.terminology_password
         ):
@@ -505,6 +527,11 @@ class Settings(BaseSettings):
                 "LLM_EGRESS_ALLOWLIST is empty and LOCAL_ONLY_MODE=false: every "
                 "caller-supplied base_url will be rejected. Set one or the other."
             )
+        if self.delivery_mode is DeliveryMode.SUBMIT and not self.local_only_mode:
+            warnings.append(
+                "DELIVERY_MODE=submit permits clinical resources to leave this process for "
+                "hosts in TARGET_EGRESS_ALLOWLIST."
+            )
         if not self.require_phi_egress_ack:
             warnings.append(
                 "REQUIRE_PHI_EGRESS_ACK=false: callers can send PHI to external providers "
@@ -587,6 +614,7 @@ __all__ = [
     "CredentialStorage",
     "DeidMode",
     "DeidProfile",
+    "DeliveryMode",
     "Environment",
     "IgPackage",
     "LlmMode",

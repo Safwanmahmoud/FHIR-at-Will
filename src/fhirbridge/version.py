@@ -27,6 +27,15 @@ FACT_SCHEMA_VERSION: Final[str] = "v1"
 VALIDATION_REPORT_SCHEMA_VERSION: Final[str] = "v1"
 """Version of the validation report envelope returned by ``POST /v1/validate``."""
 
+BINDING_TABLE_VERSION: Final[str] = "1"
+"""Version of the reviewed deterministic terminology concept table."""
+
+TARGET_DESCRIPTOR_VERSION: Final[str] = "v1"
+"""Version shared by the built-in delivery target descriptors."""
+
+DELIVERY_PLAN_SCHEMA_VERSION: Final[str] = "v1"
+"""Version of the write-plan and delivery-receipt public contracts."""
+
 SUPPORTED_FHIR_VERSIONS: Final[tuple[str, ...]] = ("4.0.1",)
 """FHIR versions this build accepts. R4 only; see docs/adr/0004-r4-typed-models.md."""
 
@@ -40,11 +49,14 @@ See docs/adr/0004-r4-typed-models.md and OPEN_QUESTIONS.md#Q1.
 """
 
 __all__ = [
+    "BINDING_TABLE_VERSION",
     "CODE_VERSION",
     "DEID_RULESET_VERSION",
+    "DELIVERY_PLAN_SCHEMA_VERSION",
     "FACT_SCHEMA_VERSION",
     "PROMPT_SET_VERSION",
     "SUPPORTED_FHIR_VERSIONS",
+    "TARGET_DESCRIPTOR_VERSION",
     "TYPED_MODEL_FHIR_VERSION",
     "VALIDATION_REPORT_SCHEMA_VERSION",
 ]

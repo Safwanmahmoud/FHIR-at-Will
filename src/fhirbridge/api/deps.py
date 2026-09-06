@@ -19,6 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from fhirbridge.api.auth import Principal, Scope, authenticate_api_key, extract_bearer
 from fhirbridge.config import Settings
+from fhirbridge.delivery.invocation import (
+    HEADER_TARGET_BASE_URL,
+    HEADER_TARGET_ID,
+    HEADER_TARGET_TOKEN,
+    TargetInvocation,
+)
 from fhirbridge.domain.errors import UnauthenticatedError
 from fhirbridge.fhir.validator_client import ValidatorClient
 from fhirbridge.llm.gateway import LlmGateway
@@ -169,6 +175,24 @@ async def get_stt_invocation(
 SttInvocationDep = Annotated[SttInvocation, Depends(get_stt_invocation)]
 
 
+async def get_target_invocation(
+    x_target_id: Annotated[str | None, Header(alias=HEADER_TARGET_ID)] = None,
+    x_target_base_url: Annotated[str | None, Header(alias=HEADER_TARGET_BASE_URL)] = None,
+    x_target_token: Annotated[str | None, Header(alias=HEADER_TARGET_TOKEN)] = None,
+    x_phi_egress_ack: Annotated[str | None, Header(alias=HEADER_PHI_ACK)] = None,
+) -> TargetInvocation:
+    """Parse request-scoped target details without exposing raw credentials."""
+    return TargetInvocation.from_headers(
+        target_id=x_target_id,
+        base_url=x_target_base_url,
+        token=x_target_token,
+        phi_ack=x_phi_egress_ack,
+    )
+
+
+TargetInvocationDep = Annotated[TargetInvocation, Depends(get_target_invocation)]
+
+
 async def get_principal(
     services: Services,
     authorization: Annotated[str | None, Header(alias="Authorization")] = None,
@@ -225,6 +249,7 @@ __all__ = [
     "SessionDep",
     "SettingsDep",
     "SttInvocationDep",
+    "TargetInvocationDep",
     "TerminologyDep",
     "ValidatorDep",
     "get_llm_gateway",
@@ -233,5 +258,6 @@ __all__ = [
     "get_services",
     "get_session",
     "get_stt_invocation",
+    "get_target_invocation",
     "require_scopes",
 ]

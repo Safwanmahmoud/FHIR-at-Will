@@ -31,9 +31,11 @@ from fhirbridge.api.deps import (
     PrincipalDep,
     SettingsDep,
     SttInvocationDep,
+    TerminologyDep,
 )
 from fhirbridge.api.routers.convert import (
     assembly_notes_of,
+    binding_info_of,
     declared_identifiers_of,
     deid_info_of,
     llm_call_info_of,
@@ -146,6 +148,7 @@ async def voice2fhir(
     stt: SttInvocationDep,
     gateway: LlmGatewayDep,
     settings: SettingsDep,
+    terminology: TerminologyDep,
     response: Response,
     audio: Annotated[UploadFile, File(description="The dictated clinical audio to convert.")],
     known_identifiers: Annotated[
@@ -188,6 +191,7 @@ async def voice2fhir(
         invocation=invocation,
         conversion_id=conversion_id,
         policy=DeidPolicy.from_settings(settings),
+        terminology=terminology,
         declared_identifiers=declared_identifiers_of(declared),
     )
     assembled = result.assembled
@@ -215,9 +219,10 @@ async def voice2fhir(
     response.headers["Cache-Control"] = "no-store"
     return VoiceConvertResponse(
         conversion_id=conversion_id,
-        bundle=assembled.bundle,
+        bundle=result.binding.bundle,
         validated=False,
         assembly=assembly_notes_of(assembled),
+        binding=binding_info_of(result.binding),
         llm=llm_call_info_of(result.extraction, invocation),
         deid=deid_info_of(result.deid),
         transcript=dictation.text,

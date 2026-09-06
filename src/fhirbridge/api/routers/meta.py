@@ -50,6 +50,9 @@ IMPLEMENTED_ENDPOINTS: list[str] = [
     "POST /v1/NAR2FHIR",
     "POST /v1/deidentify",
     "POST /v1/VOICE2FHIR",
+    "POST /v1/write-plan",
+    "POST /v1/deliver",
+    "GET /v1/targets",
     "GET /fhir/R4/metadata",
 ]
 
@@ -57,7 +60,6 @@ NOT_IMPLEMENTED_ENDPOINTS: list[str] = [
     "POST /v1/normalize (M3)",
     "POST /v1/reviews (M4)",
     "POST /v1/llm/qualify (M5)",
-    "POST /v1/deliveries (M6)",
 ]
 
 
@@ -93,6 +95,7 @@ async def capabilities(settings: SettingsDep, principal: PrincipalDep) -> Capabi
         deid_mode=str(settings.deid_mode),
         deid_profile=str(settings.deid_profile),
         deid_allow_audio_egress=settings.deid_allow_audio_egress,
+        delivery_mode=str(settings.delivery_mode),
     )
 
 

@@ -10,8 +10,11 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from fhirbridge.binding.models import BindingAction
+from fhirbridge.delivery.models import DeliveryReceipt, WritePlan
+from fhirbridge.delivery.targets.base import FailurePolicy
 from fhirbridge.fhir.assemble import AssemblyAction
-from fhirbridge.validation.models import IssueSeverity, ValidationLayer
+from fhirbridge.validation.models import IssueSeverity, ValidationLayer, ValidationReport
 
 FhirResource = dict[str, Any]
 
@@ -173,6 +176,33 @@ class AssemblyNote(BaseModel):
     )
 
 
+class BindingNote(BaseModel):
+    """PHI-free evidence for one terminology binding attempt."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    entry_index: Annotated[int, Field(ge=0)]
+    resource_type: str
+    element: str
+    action: BindingAction
+    value_set: str | None = None
+    candidate_count: Annotated[int, Field(ge=0)] = 0
+    detail: str
+
+
+class BindingInfo(BaseModel):
+    """Binding coverage and the versioned evidence supporting it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    table_version: str
+    eligible: Annotated[int, Field(ge=0)]
+    bound: Annotated[int, Field(ge=0)]
+    unbound: Annotated[int, Field(ge=0)]
+    ambiguous: Annotated[int, Field(ge=0)]
+    notes: list[BindingNote] = Field(default_factory=list)
+
+
 class DeidInfo(BaseModel):
     """PHI-free evidence about narrative minimization; never a compliance verdict."""
 
@@ -206,6 +236,7 @@ class ConvertResponse(BaseModel):
             "Resources with an 'inferred' note also carry the machine-inferred tag."
         ),
     )
+    binding: BindingInfo
     llm: LlmCallInfo
     deid: DeidInfo
 
@@ -251,6 +282,61 @@ class VoiceConvertResponse(ConvertResponse):
     transcription: DictationCallInfo
 
 
+class SubjectContextRequest(BaseModel):
+    """Destination-native chart identity; never inferred from narrative."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    patient_ref: str
+    encounter_ref: str | None = None
+    author_ref: str | None = None
+    encounter_start: str | None = None
+
+
+class WritePlanRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    conversion_id: str
+    bundle: FhirResource
+    context: SubjectContextRequest
+    profiles: list[str] = Field(default_factory=list)
+    max_terminology_checks: Annotated[int, Field(ge=1, le=2000)] = 500
+
+
+class DeliverRequest(WritePlanRequest):
+    human_attested: bool = False
+    reviewer_id: str | None = Field(
+        default=None,
+        pattern=r"^[A-Za-z0-9._-]{1,64}$",
+        description="Opaque reviewer identifier; never a name or email address.",
+    )
+
+
+class WritePlanResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    validation: ValidationReport
+    plan: WritePlan
+
+
+class DeliverResponse(WritePlanResponse):
+    receipt: DeliveryReceipt
+
+
+class TargetInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    version: str
+    failure_policy: FailurePolicy
+
+
+class TargetsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    targets: list[TargetInfo]
+
+
 class VersionResponse(BaseModel):
     """Body of ``GET /version`` — the pins required by principle 2.8."""
 
@@ -266,6 +352,9 @@ class VersionResponse(BaseModel):
     deid_ruleset_version: str
     fact_schema_version: str
     validation_report_schema_version: str
+    binding_table_version: str
+    target_descriptor_version: str
+    delivery_plan_schema_version: str
     ig_packages: list[str]
     validator_version: str | None = None
     environment: str
@@ -329,16 +418,21 @@ class CapabilitiesResponse(BaseModel):
     deid_mode: str
     deid_profile: str
     deid_allow_audio_egress: bool
+    delivery_mode: str
 
 
 __all__ = [
     "AssemblyNote",
+    "BindingInfo",
+    "BindingNote",
     "CapabilitiesResponse",
     "ConvertRequest",
     "ConvertResponse",
     "DeidInfo",
     "DeidentifyRequest",
     "DeidentifyResponse",
+    "DeliverRequest",
+    "DeliverResponse",
     "DependencyHealthResponse",
     "DependencyStatus",
     "DictationCallInfo",
@@ -346,7 +440,12 @@ __all__ = [
     "LiveResponse",
     "LlmCallInfo",
     "ReadyResponse",
+    "SubjectContextRequest",
+    "TargetInfo",
+    "TargetsResponse",
     "ValidateRequest",
     "VersionResponse",
     "VoiceConvertResponse",
+    "WritePlanRequest",
+    "WritePlanResponse",
 ]

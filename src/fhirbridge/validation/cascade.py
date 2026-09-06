@@ -51,7 +51,10 @@ from fhirbridge.validation.models import (
     ValidationScores,
 )
 from fhirbridge.version import (
+    BINDING_TABLE_VERSION,
     CODE_VERSION,
+    DELIVERY_PLAN_SCHEMA_VERSION,
+    TARGET_DESCRIPTOR_VERSION,
     TYPED_MODEL_FHIR_VERSION,
     VALIDATION_REPORT_SCHEMA_VERSION,
 )
@@ -303,6 +306,9 @@ class ValidationCascade:
             report_schema=VALIDATION_REPORT_SCHEMA_VERSION,
             fhir=self._settings.default_fhir_version,
             typed_models=TYPED_MODEL_FHIR_VERSION,
+            binding_table=BINDING_TABLE_VERSION,
+            target_descriptor=TARGET_DESCRIPTOR_VERSION,
+            delivery_plan_schema=DELIVERY_PLAN_SCHEMA_VERSION,
             ig=list(request.ig_packages or self._settings.ig_coordinates),
             validator=self._settings.validator_version,
             terminology=dict(self._terminology_versions),

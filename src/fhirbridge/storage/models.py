@@ -234,6 +234,37 @@ class IdempotencyKey(Base, TenantMixin, TimestampMixin):
     )
 
 
+class DeliveryAttempt(Base, TenantMixin, CreatedAtMixin):
+    """Append-only, PHI-free evidence of one target submission attempt."""
+
+    __tablename__ = "delivery_attempts"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    tenant_fk: Mapped[str] = mapped_column(
+        String(40), ForeignKey("tenants.id", ondelete="RESTRICT"), nullable=False
+    )
+    conversion_id: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    target_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    validation_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    preflight_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    human_attested: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    reviewer_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    response_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    resource_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    __table_args__ = (
+        CheckConstraint(
+            "status in ('submitted','failed','denied')",
+            name="delivery_attempt_status",
+        ),
+        Index("ix_delivery_attempts_tenant_id_created_at", "tenant_id", "created_at"),
+    )
+
+
 TENANT_SCOPED_TABLES: tuple[str, ...] = (
     "tenants",
     "users",
@@ -241,10 +272,11 @@ TENANT_SCOPED_TABLES: tuple[str, ...] = (
     "policies",
     "audit_events",
     "idempotency_keys",
+    "delivery_attempts",
 )
 """Tables that carry ``tenant_id`` and get an RLS policy."""
 
-APPEND_ONLY_TABLES: tuple[str, ...] = ("audit_events",)
+APPEND_ONLY_TABLES: tuple[str, ...] = ("audit_events", "delivery_attempts")
 """Tables protected by an append-only trigger in this milestone."""
 
 
@@ -253,6 +285,7 @@ __all__ = [
     "TENANT_SCOPED_TABLES",
     "ApiKey",
     "AuditEvent",
+    "DeliveryAttempt",
     "IdempotencyKey",
     "Policy",
     "Tenant",

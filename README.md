@@ -45,7 +45,9 @@ The hosted playground supports:
 | Terminology validation within the validation cascade | Implemented |
 | Clinical plausibility rules | Implemented |
 | Grounded BYOK narrative extraction with deterministic FHIR assembly (`/v1/NAR2FHIR`) | Implemented |
+| Terminology-verified binding for common vital signs and UCUM units | Implemented |
 | Dictated-audio conversion via speech-to-text (`/v1/VOICE2FHIR`) | Implemented |
+| Generic FHIR R4 write planning, context preflight, and transaction delivery | Implemented |
 | FHIR `OperationOutcome` validation response | Implemented |
 | API-key authentication and tenant-aware PostgreSQL RLS | Implemented |
 | JSON logs, Prometheus metrics, and opt-in OpenTelemetry tracing | Implemented |
@@ -111,7 +113,11 @@ flowchart LR
     Gateway -->|caller's key| Provider[LLM provider]
     Convert --> Extract[One structured extraction call]
     Extract --> Assemble[Deterministic Bundle assembly]
-    Assemble -.->|separate /v1/validate request| Cascade
+    Assemble --> Bind[Terminology binding]
+    Bind -->|verified codes only| Cascade
+    Cascade -->|delivery requests only| Preflight[Destination context preflight]
+    Preflight --> Plan[Write-plan compiler]
+    Plan --> Submit[Generic FHIR R4 transaction]
 
     API --> DB[(PostgreSQL<br>tenant RLS)]
     API --> Observability[Logs / metrics / traces]
@@ -319,7 +325,10 @@ does not need a model, while a model asked to do it may invent a
 `Coding.system`/`code` pair or nest a string where an object belongs. Assembly
 therefore refuses rather than approximates — `"62-year-old"` does not become a
 `birthDate`, and `"128/82 mmHg"` does not become a `Quantity` of 128 — and coded
-concepts carry `text` only, leaving code assertions to `/v1/validate`.
+concepts leave assembly as text only. A separate networked binding stage then applies
+only a unique candidate verified by the terminology service. Common vital-sign
+concepts and UCUM units are coded when uniquely bindable; ambiguous or unverifiable
+concepts preserve their text without a code.
 
 It does not validate the generated Bundle. The response returns:
 
@@ -327,12 +336,14 @@ It does not validate the generated Bundle. The response returns:
 - `validated` — always `false`;
 - `assembly` — every element dropped, inferred, wired, or in conflict, with a
   reason. PHI-free: it names entry indexes and element names, never values;
+- `binding` — PHI-free terminology coverage, per-element actions, candidate counts,
+  and the versioned binding table used to produce verified coding;
 - `llm` — model, token, cost, latency, and qualification metadata; and
 - `conversion_id` — an opaque correlation identifier, not a persisted job.
 
-Read `assembly` before the Bundle. FHIR requires elements a narrative rarely
-states — `Observation.status`, `Encounter.class`, `MedicationRequest.intent` — and
-assembly fills those from a reviewed constant table, marking the resource
+Read `assembly` and `binding` before the Bundle. FHIR requires elements a narrative
+rarely states — `Observation.status`, `Encounter.class`, `MedicationRequest.intent` —
+and assembly fills those from a reviewed constant table, marking the resource
 `machine-inferred` and listing each one as an `inferred` note. Such a value is
 reproducible and auditable but is not evidence about the patient.
 
@@ -527,18 +538,27 @@ and audio with no discernible speech returns `422`. `/v1/VOICE2FHIR` requires th
 | `POST` | `/v1/deidentify` | Replace detected narrative identifiers using the enforced de-identification profile |
 | `POST` | `/v1/NAR2FHIR` | Grounded BYOK extraction, deterministic FHIR assembly  |
 | `POST` | `/v1/VOICE2FHIR` | Transcribe dictated audio, then convert as `/v1/NAR2FHIR`  |
+| `GET` | `/v1/targets` | List implemented delivery targets |
+| `POST` | `/v1/write-plan` | Verify destination context and compile a target write plan |
+| `POST` | `/v1/deliver` | Submit an eligible plan with request and resource idempotency |
 
 Validation endpoints require authentication but no specific scope. `/v1/NAR2FHIR` and
 `/v1/VOICE2FHIR` require `conversions:write`; a missing required scope returns `403
-forbidden`.
+forbidden`. Delivery endpoints require `deliveries:write`; see the
+[delivery guide](docs/delivery.md) for target headers and safeguards.
 
 ## Fail-closed behavior
 
 The API does not silently downgrade verification:
 
 - unavailable validator or terminology dependencies return `503`;
+- binding refuses ambiguous or unverifiable codes and preserves the original text;
 - an unknown profile returns `422 ig-not-loaded`;
 - blocked LLM egress returns `451`;
+- delivery is disabled unless `DELIVERY_MODE` permits the requested operation;
+- target reads and writes are blocked unless target egress policy permits the host;
+- failed wrong-patient preflight or an ineligible write plan prevents submission;
+- a fully skipped preflight or `needs_review` validation requires human attestation;
 - missing or rejected provider credentials return `400`;
 - credentials sent over disallowed plaintext transport return `400`;
 - unacknowledged external PHI egress returns `422`;
@@ -569,6 +589,8 @@ See [`.env.example`](.env.example) for the complete development configuration.
 | `LLM_MODE` | Credential mode; this build supports BYOK | `byok` |
 | `ALLOW_INSECURE_TRANSPORT` | Permit credentials over HTTP | `false` |
 | `LLM_EGRESS_ALLOWLIST` | Permitted external LLM hosts | Empty; blocks all |
+| `DELIVERY_MODE` | Delivery plane: `off`, `plan_only`, or `submit` | `off` |
+| `TARGET_EGRESS_ALLOWLIST` | Permitted exact target hostnames | Empty; blocks all |
 | `LLM_ALLOWED_PROVIDERS` | Permitted provider ids | `*` |
 | `LOCAL_ONLY_MODE` | Restrict LLM calls to loopback hosts | `false` |
 | `REQUIRE_PHI_EGRESS_ACK` | Require explicit external PHI acknowledgement | `true` |
@@ -682,7 +704,7 @@ after changing dependencies.
 | M3 | Documents, facts, staged generation, fidelity, coverage, normalize | Planned |
 | M4 | Human review workflow | Planned |
 | M5 | Goldset-based model qualification and calibrated routing | Planned |
-| M6 | Delivery integrations and operational hardening | Planned |
+| M6 | Initial generic FHIR target implemented; vendor and GCC adapters planned | In progress |
 
 ## Contributing
 

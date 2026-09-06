@@ -109,7 +109,7 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
 
 
 class LlmTransportGuardMiddleware(BaseHTTPMiddleware):
-    """Refuse caller-supplied LLM keys over plaintext HTTP (AGENTS.md 7.1).
+    """Refuse caller-supplied credentials over plaintext HTTP (AGENTS.md 7.1).
 
     This is middleware rather than a route dependency deliberately: the check
     must hold for every endpoint that exists now and every endpoint added later,
@@ -127,14 +127,14 @@ class LlmTransportGuardMiddleware(BaseHTTPMiddleware):
         self.allow_insecure = allow_insecure
 
     async def dispatch(self, request: Request, call_next: Dispatch) -> Response:
-        if not self.allow_insecure and _carries_llm_credential(request):
+        if not self.allow_insecure and _carries_credential(request):
             forwarded = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
             scheme = forwarded or request.url.scheme
             if scheme != "https":
                 logger.warning("insecure_transport_rejected", extra={"scheme": scheme})
                 return render_error(
                     InsecureTransportError(
-                        "An LLM API key was supplied over plaintext HTTP. Use HTTPS, or "
+                        "A request credential was supplied over plaintext HTTP. Use HTTPS, or "
                         "set ALLOW_INSECURE_TRANSPORT=true for local development only.",
                         safe_context={"scheme": scheme},
                     ),
@@ -148,10 +148,11 @@ _CREDENTIAL_HEADERS: Final[tuple[str, ...]] = (
     "x-llm-extra-headers",
     "x-stt-api-key",
     "x-stt-extra-headers",
+    "x-target-token",
 )
 
 
-def _carries_llm_credential(request: Request) -> bool:
+def _carries_credential(request: Request) -> bool:
     return any(header in request.headers for header in _CREDENTIAL_HEADERS)
 
 

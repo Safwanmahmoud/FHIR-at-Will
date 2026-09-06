@@ -39,12 +39,20 @@ document, is reported but not tagged, so this tag keeps meaning "a required valu
 here was fabricated".
 """
 
+MACHINE_CODED: Final[str] = "machine-coded"
+"""A reviewed deterministic rule proposed a code and terminology verified it.
+
+The source wording remains in ``CodeableConcept.text``. This tag says only how
+the additional Coding was produced; it is not evidence of human review.
+"""
+
 ALL_TAGS: Final[tuple[str, ...]] = (
     AI_DERIVED,
     HUMAN_REVIEWED,
     UNQUALIFIED_MODEL,
     NONDETERMINISM_RISK,
     MACHINE_INFERRED,
+    MACHINE_CODED,
 )
 
 
@@ -60,6 +68,7 @@ __all__ = [
     "AI_DERIVED",
     "ALL_TAGS",
     "HUMAN_REVIEWED",
+    "MACHINE_CODED",
     "MACHINE_INFERRED",
     "NONDETERMINISM_RISK",
     "PROVENANCE_TAG_SYSTEM",

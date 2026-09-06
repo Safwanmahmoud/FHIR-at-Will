@@ -30,10 +30,13 @@ from fhirbridge.api.schemas import (
 from fhirbridge.observability import metrics
 from fhirbridge.storage.rls import check_rls
 from fhirbridge.version import (
+    BINDING_TABLE_VERSION,
     CODE_VERSION,
     DEID_RULESET_VERSION,
+    DELIVERY_PLAN_SCHEMA_VERSION,
     FACT_SCHEMA_VERSION,
     PROMPT_SET_VERSION,
+    TARGET_DESCRIPTOR_VERSION,
     TYPED_MODEL_FHIR_VERSION,
     VALIDATION_REPORT_SCHEMA_VERSION,
 )
@@ -215,6 +218,9 @@ async def version(services: Services) -> VersionResponse:
         deid_ruleset_version=DEID_RULESET_VERSION,
         fact_schema_version=FACT_SCHEMA_VERSION,
         validation_report_schema_version=VALIDATION_REPORT_SCHEMA_VERSION,
+        binding_table_version=BINDING_TABLE_VERSION,
+        target_descriptor_version=TARGET_DESCRIPTOR_VERSION,
+        delivery_plan_schema_version=DELIVERY_PLAN_SCHEMA_VERSION,
         ig_packages=list(settings.ig_coordinates),
         validator_version=settings.validator_version,
         environment=str(settings.environment),

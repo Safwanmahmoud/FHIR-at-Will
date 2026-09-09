@@ -14,6 +14,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from fhiratwill import SubsumptionOutcome
 
 from fhirbridge.config import TerminologyAuthMode
 from fhirbridge.domain.errors import (
@@ -22,7 +23,6 @@ from fhirbridge.domain.errors import (
     TerminologyUnavailableError,
 )
 from fhirbridge.terminology.client import FhirTerminologyClient
-from fhirbridge.terminology.models import SubsumptionOutcome
 from tests.helpers import TERMINOLOGY_URL, fhir_json, parameters
 
 LOINC = "http://loinc.org"

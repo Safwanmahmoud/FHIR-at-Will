@@ -62,6 +62,11 @@ The current build targets:
 
 `GET /v1/capabilities` reports implemented and unavailable functionality at runtime.
 
+The framework-neutral conversion, de-identification, validation, terminology
+binding, and write-planning core is provided by the
+[`fhiratwill`](https://pypi.org/project/fhiratwill/) package. This repository
+contains the FastAPI service and its deployment-specific adapters.
+
 ## How validation works
 
 Every report contains all eight layers. A check that could not run is marked

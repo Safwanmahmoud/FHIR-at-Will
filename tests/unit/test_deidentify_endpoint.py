@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import httpx
+from fhiratwill import DeidMode
 
 from fhirbridge.api.deps import AppServices
 from fhirbridge.config import Settings
-from fhirbridge.deid.policy import DeidMode
 
 
 async def test_it_returns_only_the_minimized_narrative(

@@ -11,10 +11,10 @@ from __future__ import annotations
 import httpx
 import pytest
 from fastapi import FastAPI
+from fhiratwill import CASCADE_ORDER
 
 from fhirbridge.api.routers.meta import IMPLEMENTED_ENDPOINTS, NOT_IMPLEMENTED_ENDPOINTS
 from fhirbridge.domain.errors import ERROR_SPECS, ErrorCode
-from fhirbridge.validation.models import CASCADE_ORDER
 from fhirbridge.version import CODE_VERSION
 from tests.helpers import api_routes
 

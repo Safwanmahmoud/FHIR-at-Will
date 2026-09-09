@@ -22,6 +22,7 @@ import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, File, Form, Response, UploadFile
+from fhiratwill import AssemblyAction, DeidPolicy
 from pydantic import ValidationError
 
 from fhirbridge.api.auth import Scope
@@ -45,7 +46,6 @@ from fhirbridge.api.schemas import (
     KnownIdentifiers,
     VoiceConvertResponse,
 )
-from fhirbridge.deid.policy import DeidPolicy
 from fhirbridge.domain.errors import (
     InvalidRequestError,
     PayloadTooLargeError,
@@ -53,7 +53,6 @@ from fhirbridge.domain.errors import (
     UnsupportedMediaTypeError,
 )
 from fhirbridge.domain.ids import IdPrefix, new_id
-from fhirbridge.fhir.assemble import AssemblyAction
 from fhirbridge.llm.conversion import convert_narrative
 
 logger = logging.getLogger(__name__)
@@ -190,7 +189,7 @@ async def voice2fhir(
         gateway=gateway,
         invocation=invocation,
         conversion_id=conversion_id,
-        policy=DeidPolicy.from_settings(settings),
+        policy=DeidPolicy(mode=settings.deid_mode, profile=settings.deid_profile),
         terminology=terminology,
         declared_identifiers=declared_identifiers_of(declared),
     )

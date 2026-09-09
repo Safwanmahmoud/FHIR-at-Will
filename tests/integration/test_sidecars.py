@@ -20,6 +20,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 import pytest
+from fhiratwill import RoutingDecision, ValidationLayer, ValidationSpec
 
 from fhirbridge.config import Environment, Settings
 from fhirbridge.domain.errors import (
@@ -29,8 +30,7 @@ from fhirbridge.domain.errors import (
 )
 from fhirbridge.fhir.validator_client import ValidatorClient
 from fhirbridge.terminology.client import FhirTerminologyClient
-from fhirbridge.validation.cascade import ValidationCascade, ValidationSpec
-from fhirbridge.validation.models import RoutingDecision, ValidationLayer
+from fhirbridge.validation.cascade import ValidationCascade
 
 pytestmark = pytest.mark.integration
 

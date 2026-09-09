@@ -224,6 +224,12 @@ fhir-core==1.1.10 \
 fhir-resources==8.3.0 \
     --hash=sha256:151e6c9b4336e36383cc2aaf2067a6f112a420fce1c7bd289182e55dd950871b \
     --hash=sha256:bdfd1c7bd1b89bfa269c1f435727771f6c632cd857e2848221713b3f8b9f46e8
+    # via
+    #   fhiratwill
+    #   fhirbridge
+fhiratwill==0.2.0 \
+    --hash=sha256:be3c3f37bb1323f85b14f4df04bfa04e63ca47fb00c8b79117b97a3e884a9229 \
+    --hash=sha256:cc385bfd73f0e1c76e1211bc42599247a92fe309e4ba5392f2cb69fea5f7f347
     # via fhirbridge
 filelock==3.32.3 \
     --hash=sha256:0ffa185a3540854c95caa7fa76b76cb219d907415e2c5dc9af25fd970563487f \
@@ -549,6 +555,7 @@ pydantic==2.13.4 \
     # via
     #   fastapi
     #   fhir-core
+    #   fhiratwill
     #   fhirbridge
     #   litellm
     #   openai
@@ -609,6 +616,7 @@ pyyaml==6.0.3 \
     --hash=sha256:d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f \
     --hash=sha256:fc09d0aa354569bc501d4e787133afc08552722d3ab34836a80547331bb5d4a0
     # via
+    #   fhiratwill
     #   fhirbridge
     #   huggingface-hub
     #   uvicorn

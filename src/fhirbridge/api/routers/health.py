@@ -137,7 +137,7 @@ async def _terminology_status(services: Services) -> DependencyStatus:
     return DependencyStatus(
         name="terminology",
         status="up",
-        latency_ms=health.latency_ms,
+        latency_ms=getattr(health, "latency_ms", None),
         version=health.software,
     )
 

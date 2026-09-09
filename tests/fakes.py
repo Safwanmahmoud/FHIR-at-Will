@@ -17,7 +17,18 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
-from fhirbridge.deid.minimize import Minimization
+from fhiratwill import (
+    Coding,
+    ExpansionResult,
+    LookupResult,
+    SubsumesResult,
+    SubsumptionOutcome,
+    TerminologyHealth,
+    TranslateResult,
+    ValidateCodeResult,
+)
+from fhiratwill.deid.core import Minimization
+
 from fhirbridge.domain.errors import (
     DomainError,
     ErrorCode,
@@ -31,16 +42,6 @@ from fhirbridge.fhir.validator_client import (
 )
 from fhirbridge.llm.gateway import DictationResult, LlmResult
 from fhirbridge.llm.invocation import LlmInvocation, SttInvocation
-from fhirbridge.terminology.models import (
-    Coding,
-    ExpansionResult,
-    LookupResult,
-    SubsumesResult,
-    SubsumptionOutcome,
-    TerminologyHealth,
-    TranslateResult,
-    ValidateCodeResult,
-)
 
 
 @dataclass(frozen=True, slots=True)

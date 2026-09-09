@@ -5,6 +5,9 @@ semantic versioning after its first public release.
 
 ## Unreleased
 
+- Replace the duplicated framework-neutral core with the published
+  `fhiratwill==0.2.0` package. The API now keeps only HTTP, policy, observability,
+  persistence, sidecar transport, and delivery-submission integration code.
 - Prepare the repository for public contribution and coordinated disclosure.
 - Add grounded two-stage `/v1/NAR2FHIR` conversion.
 - Consolidate narrative-to-FHIR conversion on `/v1/NAR2FHIR`.

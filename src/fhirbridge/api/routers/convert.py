@@ -1,7 +1,7 @@
 """``POST /v1/NAR2FHIR``.
 
 One grounded model call extracts catalog-constrained facts; assembly into FHIR is
-then deterministic (:mod:`fhirbridge.fhir.assemble`). No model ever sees a Bundle,
+then deterministic via :mod:`fhiratwill`. No model ever sees a Bundle,
 so the same entities always produce the same Bundle, and the two failure modes of
 a generation call -- inventing a code, or nesting a string where FHIR wants an
 object -- are structurally unavailable rather than discouraged by a prompt.
@@ -24,6 +24,13 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Response
+from fhiratwill import (
+    AssembledBundle,
+    AssemblyAction,
+    DeclaredIdentifier,
+    DeidPolicy,
+    IdentifierClass,
+)
 
 from fhirbridge.api.auth import Scope
 from fhirbridge.api.deps import (
@@ -43,11 +50,7 @@ from fhirbridge.api.schemas import (
     KnownIdentifiers,
     LlmCallInfo,
 )
-from fhirbridge.deid.detectors import DeclaredIdentifier
-from fhirbridge.deid.policy import DeidPolicy
-from fhirbridge.deid.spans import IdentifierClass
 from fhirbridge.domain.ids import IdPrefix, new_id
-from fhirbridge.fhir.assemble import AssembledBundle, AssemblyAction
 from fhirbridge.llm.conversion import convert_narrative
 from fhirbridge.llm.gateway import LlmResult
 from fhirbridge.llm.invocation import LlmInvocation
@@ -99,7 +102,7 @@ def deid_info_of(report: Any) -> DeidInfo:
         ruleset_version=report.ruleset_version,
         detections=report.detections,
         replacements=report.replacements,
-        restored=report.restored,
+        restored=getattr(report, "restored", 0),
         residual_risk="not_assessed",
     )
 
@@ -180,7 +183,7 @@ async def nar2fhir(
         gateway=gateway,
         invocation=invocation,
         conversion_id=conversion_id,
-        policy=DeidPolicy.from_settings(settings),
+        policy=DeidPolicy(mode=settings.deid_mode, profile=settings.deid_profile),
         terminology=terminology,
         declared_identifiers=declared_identifiers_of(body.known_identifiers),
     )

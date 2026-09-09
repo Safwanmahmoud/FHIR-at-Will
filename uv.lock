@@ -669,6 +669,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fhiratwill"
+version = "0.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fhir-resources" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e6/85/15a2b59e9b1df45bfebdf86eeff37d242ca40321be526e89a6d359197b21/fhiratwill-0.2.0.tar.gz", hash = "sha256:be3c3f37bb1323f85b14f4df04bfa04e63ca47fb00c8b79117b97a3e884a9229", size = 54698, upload-time = "2026-09-06T15:51:25.56Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/a5/c7e816917b7c4e87621cf3fddcc0efbb54e95a40ad8b2a1c2d0f788d6c7e/fhiratwill-0.2.0-py3-none-any.whl", hash = "sha256:cc385bfd73f0e1c76e1211bc42599247a92fe309e4ba5392f2cb69fea5f7f347", size = 64806, upload-time = "2026-09-06T15:51:24.194Z" },
+]
+
+[[package]]
 name = "fhirbridge"
 version = "0.1.0"
 source = { editable = "." }
@@ -680,6 +694,7 @@ dependencies = [
     { name = "cryptography" },
     { name = "fastapi" },
     { name = "fhir-resources" },
+    { name = "fhiratwill" },
     { name = "httpx" },
     { name = "litellm" },
     { name = "opentelemetry-api" },
@@ -731,6 +746,7 @@ requires-dist = [
     { name = "cryptography", specifier = "==50.0.0" },
     { name = "fastapi", specifier = "==0.141.1" },
     { name = "fhir-resources", specifier = "==8.3.0" },
+    { name = "fhiratwill", specifier = "==0.2.0" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "litellm", specifier = "==1.97.0" },
     { name = "opentelemetry-api", specifier = "==1.44.0" },

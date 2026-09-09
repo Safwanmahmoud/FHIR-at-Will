@@ -2,7 +2,6 @@
   "components": {
     "schemas": {
       "AssemblyAction": {
-        "description": "What assembly did about an element it could not simply place.",
         "enum": [
           "dropped",
           "inferred",
@@ -362,7 +361,6 @@
       },
       "CriticalFlag": {
         "additionalProperties": false,
-        "description": "A critical-domain concern that always forces review (AGENTS.md 10).",
         "properties": {
           "domain": {
             "title": "Domain",
@@ -755,7 +753,6 @@
         "type": "object"
       },
       "IssueSeverity": {
-        "description": "Aligned with FHIR ``issue-severity``.",
         "enum": [
           "fatal",
           "error",
@@ -845,10 +842,8 @@
       },
       "LayerResult": {
         "additionalProperties": false,
-        "description": "The outcome of one layer.",
         "properties": {
           "blocking": {
-            "description": "Whether errors in this layer block the overall result.",
             "title": "Blocking",
             "type": "boolean"
           },
@@ -882,7 +877,6 @@
             "type": "integer"
           },
           "notes": {
-            "description": "Coverage caveats, e.g. which bindings could not be checked here.",
             "items": {
               "type": "string"
             },
@@ -982,13 +976,13 @@
       },
       "PlanNote": {
         "additionalProperties": false,
+        "description": "PHI-free planning evidence.",
         "properties": {
           "action": {
             "title": "Action",
             "type": "string"
           },
           "detail": {
-            "description": "PHI-free reason; never an element value.",
             "title": "Detail",
             "type": "string"
           },
@@ -1079,7 +1073,6 @@
       },
       "ReportVersions": {
         "additionalProperties": false,
-        "description": "The full version set required by principle 2.8.",
         "properties": {
           "binding_table": {
             "title": "Binding Table",
@@ -1087,10 +1080,6 @@
           },
           "code": {
             "title": "Code",
-            "type": "string"
-          },
-          "delivery_plan_schema": {
-            "title": "Delivery Plan Schema",
             "type": "string"
           },
           "fhir": {
@@ -1104,31 +1093,16 @@
             "title": "Ig",
             "type": "array"
           },
-          "model": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "description": "Per-stage LLM model ids. Empty for validate-only calls.",
-            "title": "Model",
-            "type": "object"
+          "invariant_pack": {
+            "title": "Invariant Pack",
+            "type": "string"
           },
-          "prompt_set": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Prompt Set"
+          "plausibility_pack": {
+            "title": "Plausibility Pack",
+            "type": "string"
           },
           "report_schema": {
             "title": "Report Schema",
-            "type": "string"
-          },
-          "target_descriptor": {
-            "title": "Target Descriptor",
             "type": "string"
           },
           "terminology": {
@@ -1146,7 +1120,6 @@
             "type": "object"
           },
           "typed_models": {
-            "description": "FHIR version of the fhir.resources models used for L1 (see docs/adr/0004-r4-typed-models.md).",
             "title": "Typed Models",
             "type": "string"
           },
@@ -1168,14 +1141,13 @@
           "fhir",
           "typed_models",
           "binding_table",
-          "target_descriptor",
-          "delivery_plan_schema"
+          "invariant_pack",
+          "plausibility_pack"
         ],
         "title": "ReportVersions",
         "type": "object"
       },
       "RoutingDecision": {
-        "description": "L8 routing outcomes (AGENTS.md 10).",
         "enum": [
           "auto",
           "needs_review",
@@ -1375,10 +1347,8 @@
       },
       "ValidationIssue": {
         "additionalProperties": false,
-        "description": "One issue from one layer.",
         "properties": {
           "code": {
-            "description": "FHIR issue-type code, or a rule id for L5.",
             "title": "Code",
             "type": "string"
           },
@@ -1402,7 +1372,6 @@
                 "type": "null"
               }
             ],
-            "description": "FHIRPath location, e.g. Bundle.entry[4].resource.category.",
             "title": "Expression"
           },
           "layer": {
@@ -1428,11 +1397,9 @@
                 "type": "null"
               }
             ],
-            "description": "A fhirbridge error code, when the issue maps to one.",
             "title": "Machine Code"
           },
           "message": {
-            "description": "Human-readable detail. May quote element values.",
             "title": "Message",
             "type": "string"
           },
@@ -1445,7 +1412,6 @@
                 "type": "null"
               }
             ],
-            "description": "Identifier of the L5 plausibility rule that fired.",
             "title": "Rule Id"
           },
           "severity": {
@@ -1462,7 +1428,6 @@
         "type": "object"
       },
       "ValidationLayer": {
-        "description": "The eight cascade layers, in execution order.",
         "enum": [
           "structural",
           "profile",
@@ -1478,10 +1443,8 @@
       },
       "ValidationReport": {
         "additionalProperties": false,
-        "description": "The response body of ``POST /v1/validate``.",
         "properties": {
           "conformant": {
-            "description": "True when no blocking issue was raised by any layer that ran.",
             "title": "Conformant",
             "type": "boolean"
           },
@@ -1543,7 +1506,6 @@
             "type": "array"
           },
           "resource_count": {
-            "description": "1, or the number of Bundle entries.",
             "title": "Resource Count",
             "type": "integer"
           },
@@ -1579,7 +1541,6 @@
       },
       "ValidationScores": {
         "additionalProperties": false,
-        "description": "Scores. ``None`` means \"not measured\", never \"perfect\".",
         "properties": {
           "conformance": {
             "anyOf": [
@@ -1592,7 +1553,6 @@
                 "type": "null"
               }
             ],
-            "description": "Fraction of submitted resources with zero blocking issues in L1-L4. Defined in docs/evaluation.md.",
             "title": "Conformance"
           },
           "coverage": {
@@ -1606,7 +1566,6 @@
                 "type": "null"
               }
             ],
-            "description": "L7 coverage, i.e. 1 - omission_rate.",
             "title": "Coverage"
           },
           "fidelity": {
@@ -1620,7 +1579,6 @@
                 "type": "null"
               }
             ],
-            "description": "L6 semantic fidelity. Requires source spans and an LLM.",
             "title": "Fidelity"
           },
           "mean_confidence": {
@@ -1634,7 +1592,6 @@
                 "type": "null"
               }
             ],
-            "description": "Mean calibrated fact confidence. Requires a conversion.",
             "title": "Mean Confidence"
           }
         },

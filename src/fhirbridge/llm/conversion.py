@@ -1,10 +1,8 @@
-"""The narrative-to-FHIR core, shared by every entry point.
+"""Service integration for the framework-neutral :mod:`fhiratwill` core.
 
-One grounded model call extracts catalog-constrained facts; assembly into FHIR is
-then deterministic (:mod:`fhirbridge.fhir.assemble`). ``POST /v1/NAR2FHIR`` runs
-this on caller-supplied text; ``POST /v1/VOICE2FHIR`` runs it on a transcript it
-produced first. Keeping the pipeline here means both endpoints share one code path
-and cannot drift, and the transcription step is a strict prefix rather than a fork.
+The algorithms live in the separately versioned PyPI package. This adapter keeps
+the API's policy-enforcing gateway while composing the library's de-identification,
+extraction, assembly, and terminology binding.
 """
 
 from __future__ import annotations
@@ -12,17 +10,24 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from fhirbridge.binding.bind import bind_bundle
-from fhirbridge.binding.models import BoundBundle
-from fhirbridge.deid.detectors import DeclaredIdentifier
-from fhirbridge.deid.minimize import DeidReport, minimize
-from fhirbridge.deid.policy import DeidPolicy
-from fhirbridge.fhir.assemble import AssembledBundle, assemble_bundle
+from fhiratwill import (
+    AssembledBundle,
+    BoundBundle,
+    DeclaredIdentifier,
+    DeidentifyResult,
+    DeidPolicy,
+    ExtractionSchemaError,
+    TerminologyClient,
+    assemble_bundle,
+    bind_bundle,
+)
+from fhiratwill.conversion import parse_entities
+from fhiratwill.conversion.prompts import NARRATIVE_TO_ENTITIES
+from fhiratwill.deid.core import minimize
+
+from fhirbridge.domain.errors import LlmSchemaViolationError
 from fhirbridge.llm.gateway import LlmGateway, LlmResult
 from fhirbridge.llm.invocation import LlmInvocation
-from fhirbridge.llm.nar2fhir import parse_entities
-from fhirbridge.llm.prompts import NARRATIVE_TO_ENTITIES
-from fhirbridge.terminology.interface import TerminologyClient
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +41,7 @@ class ConversionResult:
     assembled: AssembledBundle
     binding: BoundBundle
     extraction: LlmResult
-    deid: DeidReport
+    deid: DeidentifyResult
 
 
 async def convert_narrative(
@@ -55,7 +60,11 @@ async def convert_narrative(
     same narrative yields the same content on every run while staying distinct
     across conversions.
     """
-    minimization = minimize(text, policy=policy, declared=declared_identifiers)
+    minimization = minimize(
+        text,
+        policy=policy,
+        known_identifiers=declared_identifiers,
+    )
     try:
         extraction = await gateway.complete_json(
             invocation,
@@ -63,11 +72,14 @@ async def convert_narrative(
             user_prompt=NARRATIVE_TO_ENTITIES.render_user(narrative=minimization.safe_text),
             minimization=minimization,
         )
-        entities = parse_entities(extraction.resource)
+        try:
+            entities = parse_entities(extraction.resource)
+        except ExtractionSchemaError as exc:
+            raise LlmSchemaViolationError(str(exc)) from exc
         restored = minimization.restore_entities(entities)
         assembled = assemble_bundle(restored, seed=conversion_id)
         binding = await bind_bundle(assembled.bundle, client=terminology)
-        report = minimization.report()
+        report = minimization.result()
         return ConversionResult(
             assembled=assembled,
             binding=binding,

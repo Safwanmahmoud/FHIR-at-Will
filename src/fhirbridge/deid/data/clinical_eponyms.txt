@@ -1,8 +1,0 @@
-# Protected clinical phrases, one per line. Matching is case-insensitive.
-Alzheimer disease
-Bell palsy
-Crohn disease
-Graves disease
-Hodgkin lymphoma
-Parkinson disease
-Ross procedure

@@ -16,6 +16,8 @@ classifiers = [
 ]
 
 dependencies = [
+  # Framework-neutral conversion, de-identification, validation, and delivery planning.
+  "fhiratwill==0.2.0",
   # API
   "fastapi==0.141.1",
   "uvicorn[standard]==0.52.4",

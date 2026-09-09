@@ -26,6 +26,15 @@ from dataclasses import dataclass, field
 from typing import Any, Final, Self
 
 import httpx
+from fhiratwill import (
+    FhirPathOutcome as CoreFhirPathOutcome,
+)
+from fhiratwill import (
+    ValidatorIssue as CoreValidatorIssue,
+)
+from fhiratwill import (
+    ValidatorOutcome as CoreValidatorOutcome,
+)
 
 from fhirbridge.domain.errors import IgNotLoadedError, ValidatorUnavailableError
 from fhirbridge.observability.metrics import (
@@ -68,71 +77,30 @@ class FhirPathNotEvaluableError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
-class ValidatorIssue:
-    """One issue from the validator, normalized.
-
-    ``message`` may quote element *values* from the submitted resource, so it is
-    safe to return in a response body but MUST NOT be logged or used as a metric
-    label (principle 2.6).
-    """
-
-    severity: str
-    code: str
-    message: str
-    expression: str | None = None
-    line: int | None = None
-    column: int | None = None
-
+class ValidatorIssue(CoreValidatorIssue):
     @property
     def is_blocking(self) -> bool:
         return self.severity in ("fatal", "error")
 
 
 @dataclass(frozen=True, slots=True)
-class ValidatorOutcome:
-    """The normalized result of one ``POST /validateResource`` call."""
-
-    issues: tuple[ValidatorIssue, ...]
-    profiles: tuple[str, ...]
-    duration_ms: int
-
+class ValidatorOutcome(CoreValidatorOutcome):
     @property
-    def errors(self) -> tuple[ValidatorIssue, ...]:
+    def errors(self) -> tuple[CoreValidatorIssue, ...]:
         return tuple(i for i in self.issues if i.severity in ("fatal", "error"))
 
     @property
-    def warnings(self) -> tuple[ValidatorIssue, ...]:
+    def warnings(self) -> tuple[CoreValidatorIssue, ...]:
         return tuple(i for i in self.issues if i.severity == "warning")
 
     @property
-    def informational(self) -> tuple[ValidatorIssue, ...]:
+    def informational(self) -> tuple[CoreValidatorIssue, ...]:
         return tuple(i for i in self.issues if i.severity == "information")
 
 
 @dataclass(frozen=True, slots=True)
-class FhirPathOutcome:
-    """The result of one ``POST /fhirpath`` evaluation."""
-
-    expression: str
-    values: tuple[Any, ...]
+class FhirPathOutcome(CoreFhirPathOutcome):
     raw: Any = None
-
-    @property
-    def is_true(self) -> bool:
-        """FHIRPath truthiness, used for invariant checks.
-
-        A single boolean ``true`` is true; a single boolean ``false`` is false;
-        an empty collection is treated as *not* satisfied, because a FHIR
-        invariant that evaluates to empty has not been demonstrated to hold.
-        """
-        if len(self.values) != 1:
-            return False
-        value = self.values[0]
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() == "true"
-        return False
 
 
 @dataclass(frozen=True, slots=True)
@@ -221,7 +189,9 @@ class ValidatorClient:
             content_type="application/fhir+json",
         )
         return FhirPathOutcome(
-            expression=expression, values=_parse_fhirpath_values(payload), raw=payload
+            expression=expression,
+            values=_parse_fhirpath_values(payload),
+            raw=payload,
         )
 
     # --- Health -----------------------------------------------------------

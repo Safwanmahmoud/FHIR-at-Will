@@ -18,12 +18,11 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Body, Response
+from fhiratwill import ValidationReport, ValidationSpec
 
 from fhirbridge.api.deps import CascadeDep, PrincipalDep, SettingsDep
 from fhirbridge.api.schemas import ValidateRequest
 from fhirbridge.fhir.operation_outcome import FHIR_JSON_MEDIA_TYPE
-from fhirbridge.validation.cascade import ValidationSpec
-from fhirbridge.validation.models import ValidationReport
 
 logger = logging.getLogger(__name__)
 

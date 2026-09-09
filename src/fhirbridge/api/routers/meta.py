@@ -11,12 +11,12 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, Response
+from fhiratwill import CASCADE_ORDER, ValidationLayer
 
 from fhirbridge.api.deps import PrincipalDep, SettingsDep
 from fhirbridge.api.schemas import CapabilitiesResponse
 from fhirbridge.domain.errors import error_code_system
 from fhirbridge.fhir.operation_outcome import FHIR_JSON_MEDIA_TYPE
-from fhirbridge.validation.models import CASCADE_ORDER, ValidationLayer
 from fhirbridge.version import CODE_VERSION, SUPPORTED_FHIR_VERSIONS
 
 router = APIRouter(prefix="/v1", tags=["platform"])

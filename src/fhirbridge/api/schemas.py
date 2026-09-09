@@ -8,13 +8,16 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
+from fhiratwill import (
+    AssemblyAction,
+    BindingAction,
+    FailurePolicy,
+    ValidationReport,
+)
+from fhiratwill.validation import IssueSeverity, ValidationLayer
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from fhirbridge.binding.models import BindingAction
 from fhirbridge.delivery.models import DeliveryReceipt, WritePlan
-from fhirbridge.delivery.targets.base import FailurePolicy
-from fhirbridge.fhir.assemble import AssemblyAction
-from fhirbridge.validation.models import IssueSeverity, ValidationLayer, ValidationReport
 
 FhirResource = dict[str, Any]
 

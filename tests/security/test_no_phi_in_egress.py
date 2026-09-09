@@ -7,14 +7,18 @@ from typing import Any
 import httpx
 import pytest
 from fastapi import FastAPI
+from fhiratwill import (
+    DeclaredIdentifier,
+    DeidMode,
+    DeidPolicy,
+    DeidProfile,
+    IdentifierClass,
+)
+from fhiratwill.deid.core import minimize
 from pydantic import SecretStr
 
 from fhirbridge.api.deps import AppServices, get_llm_gateway
 from fhirbridge.config import Settings
-from fhirbridge.deid.detectors import DeclaredIdentifier
-from fhirbridge.deid.minimize import minimize
-from fhirbridge.deid.policy import DeidMode, DeidPolicy, DeidProfile
-from fhirbridge.deid.spans import IdentifierClass
 from fhirbridge.domain.errors import (
     AudioEgressNotPermittedError,
     PhiMinimizationFailedError,
@@ -92,12 +96,11 @@ async def test_gateway_leak_sweep_fails_before_provider_call(
     policy = DeidPolicy(
         mode=DeidMode.ENFORCED,
         profile=DeidProfile.HIPAA_SAFE_HARBOR,
-        allow_audio_egress=False,
     )
     result = minimize(
         name,
         policy=policy,
-        declared=[DeclaredIdentifier(IdentifierClass.NAME, name)],
+        known_identifiers=[DeclaredIdentifier(IdentifierClass.NAME, name)],
     )
     invocation = LlmInvocation(
         provider="openrouter",

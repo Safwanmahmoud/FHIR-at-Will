@@ -1,5 +1,4 @@
-"""A :class:`~fhirbridge.terminology.interface.TerminologyClient` over any FHIR
-terminology server.
+"""A :class:`fhiratwill.TerminologyClient` adapter for any FHIR terminology server.
 
 Two decisions worth stating explicitly:
 
@@ -20,9 +19,32 @@ import json
 import logging
 import time
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import Any, Final, Self
 
 import httpx
+from fhiratwill import (
+    CodeSystemVersion,
+    ExpansionResult,
+    SubsumesResult,
+    SubsumptionOutcome,
+    TranslateResult,
+)
+from fhiratwill import (
+    Coding as CoreCoding,
+)
+from fhiratwill import (
+    LookupResult as CoreLookupResult,
+)
+from fhiratwill import (
+    TerminologyHealth as CoreTerminologyHealth,
+)
+from fhiratwill import (
+    TranslateMatch as CoreTranslateMatch,
+)
+from fhiratwill import (
+    ValidateCodeResult as CoreValidateCodeResult,
+)
 
 from fhirbridge.config import Settings, TerminologyAuthMode
 from fhirbridge.domain.errors import (
@@ -38,24 +60,51 @@ from fhirbridge.observability.metrics import (
     TERMINOLOGY_VALIDATE_CODE,
 )
 from fhirbridge.terminology.cache import TtlCache
-from fhirbridge.terminology.models import (
-    CodeSystemVersion,
-    Coding,
-    ExpansionResult,
-    LookupResult,
-    SubsumesResult,
-    SubsumptionOutcome,
-    TerminologyHealth,
-    TranslateMatch,
-    TranslateResult,
-    ValidateCodeResult,
-)
 
 logger = logging.getLogger(__name__)
 
 DEPENDENCY: Final[str] = "terminology"
 
 _ValidateCacheKey = tuple[str, str, str, str, str]
+
+
+@dataclass(frozen=True, slots=True)
+class Coding(CoreCoding):
+    @property
+    def key(self) -> tuple[str, str, str]:
+        return (self.system or "", self.code or "", self.version or "")
+
+    def __str__(self) -> str:
+        return f"{self.system}|{self.code}"
+
+
+@dataclass(frozen=True, slots=True)
+class ValidateCodeResult(CoreValidateCodeResult):
+    @property
+    def in_value_set(self) -> bool | None:
+        return None if self.value_set is None else self.result
+
+
+@dataclass(frozen=True, slots=True)
+class LookupResult(CoreLookupResult):
+    name: str | None = None
+    designations: tuple[str, ...] = ()
+    inactive: bool | None = None
+    properties: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class TranslateMatch(CoreTranslateMatch):
+    source: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TerminologyHealth(CoreTerminologyHealth):
+    latency_ms: int | None = None
+
+    @property
+    def ready(self) -> bool:
+        return self.reachable
 
 
 class FhirTerminologyClient:

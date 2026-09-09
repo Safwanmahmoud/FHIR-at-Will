@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from fhiratwill.conversion.prompts import DICTATION_TRANSCRIBE
 from pydantic import SecretStr
 
 from fhirbridge.config import QualificationTier, Settings
@@ -34,7 +35,6 @@ from fhirbridge.llm.gateway import (
     _map_llm_exception,
 )
 from fhirbridge.llm.invocation import LlmInvocation, SttInvocation
-from fhirbridge.llm.prompts import DICTATION_TRANSCRIBE
 
 
 def _settings(**overrides: object) -> Settings:

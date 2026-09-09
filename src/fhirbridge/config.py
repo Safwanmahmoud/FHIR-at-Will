@@ -22,6 +22,7 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated, Final, Self
 
+from fhiratwill import DeidMode, DeidProfile
 from pydantic import (
     AliasChoices,
     AnyHttpUrl,
@@ -33,7 +34,6 @@ from pydantic import (
 )
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
-from fhirbridge.deid.policy import DeidMode, DeidProfile
 from fhirbridge.util.duration import DurationParseError, parse_duration
 
 logger = logging.getLogger(__name__)
@@ -412,9 +412,9 @@ class Settings(BaseSettings):
 
         if self.deid_mode is not DeidMode.OFF:
             try:
-                from fhirbridge.deid.detectors import validate_assets
+                from fhiratwill.deid.detectors import load_pattern_rules
 
-                validate_assets()
+                load_pattern_rules()
             except (OSError, ValueError) as exc:
                 problems.append(
                     "DEID_MODE requires readable, valid de-identification assets "

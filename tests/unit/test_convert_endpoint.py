@@ -13,16 +13,16 @@ from typing import Any
 import httpx
 import pytest
 from fastapi import FastAPI
-
-from fhirbridge.api.auth import Principal
-from fhirbridge.api.deps import get_llm_gateway, get_principal
-from fhirbridge.domain.errors import EgressBlockedError, LlmSchemaViolationError
-from fhirbridge.fhir.tags import (
+from fhiratwill.tags import (
     AI_DERIVED,
     MACHINE_CODED,
     MACHINE_INFERRED,
     PROVENANCE_TAG_SYSTEM,
 )
+
+from fhirbridge.api.auth import Principal
+from fhirbridge.api.deps import get_llm_gateway, get_principal
+from fhirbridge.domain.errors import EgressBlockedError, LlmSchemaViolationError
 from tests.fakes import FakeLlmGateway
 
 EXTRACTED = {

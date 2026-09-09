@@ -33,9 +33,14 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any, Final, Protocol
 
+from fhiratwill import DeidMode
+from fhiratwill.conversion.prompts import DICTATION_TRANSCRIBE
+from fhiratwill.deid.core import Minimization
+from fhiratwill.deid.errors import (
+    PhiMinimizationFailedError as CorePhiMinimizationFailedError,
+)
+
 from fhirbridge.config import QualificationTier, Settings
-from fhirbridge.deid.minimize import Minimization
-from fhirbridge.deid.policy import DeidMode
 from fhirbridge.domain.errors import (
     AudioEgressNotPermittedError,
     BudgetExceededError,
@@ -49,11 +54,11 @@ from fhirbridge.domain.errors import (
     LlmSchemaViolationError,
     ModelNotQualifiedError,
     PhiEgressNotAcknowledgedError,
+    PhiMinimizationFailedError,
     PhiMinimizationRequiredError,
     UnreadableDocumentError,
 )
 from fhirbridge.llm.invocation import LlmInvocation, SttInvocation
-from fhirbridge.llm.prompts import DICTATION_TRANSCRIBE
 from fhirbridge.llm.qualification import resolve_tier
 
 logger = logging.getLogger(__name__)
@@ -226,7 +231,10 @@ class LlmGateway:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ]
-        minimization.assert_safe_payload(messages)
+        try:
+            minimization.assert_safe_payload(messages)
+        except CorePhiMinimizationFailedError as exc:
+            raise PhiMinimizationFailedError() from exc
         self._enforce_budget(invocation, messages, max_tokens)
 
         response, latency_ms = await self._acompletion(

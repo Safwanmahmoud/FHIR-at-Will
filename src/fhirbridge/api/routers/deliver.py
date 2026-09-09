@@ -7,6 +7,16 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Header, Response
+from fhiratwill import (
+    PreflightStatus,
+    RoutingDecision,
+    SubjectContext,
+    ValidationReport,
+    ValidationSpec,
+    WritePlan,
+    bind_bundle,
+    compile_write_plan,
+)
 from sqlalchemy import select
 
 from fhirbridge.api.auth import Scope
@@ -26,10 +36,7 @@ from fhirbridge.api.schemas import (
     WritePlanRequest,
     WritePlanResponse,
 )
-from fhirbridge.binding.bind import bind_bundle
-from fhirbridge.delivery.context import SubjectContext
-from fhirbridge.delivery.models import DeliveryReceipt, PreflightStatus, WritePlan
-from fhirbridge.delivery.plan import compile_write_plan
+from fhirbridge.delivery.models import DeliveryReceipt
 from fhirbridge.delivery.preflight import run_preflight
 from fhirbridge.delivery.submit import FhirTargetClient
 from fhirbridge.delivery.targets import TARGETS
@@ -40,8 +47,6 @@ from fhirbridge.domain.errors import (
 )
 from fhirbridge.domain.ids import IdPrefix, new_id
 from fhirbridge.storage.models import DeliveryAttempt, IdempotencyKey
-from fhirbridge.validation.cascade import ValidationSpec
-from fhirbridge.validation.models import RoutingDecision, ValidationReport
 
 router = APIRouter(prefix="/v1", tags=["delivery"])
 
@@ -81,7 +86,6 @@ def _context(body: WritePlanRequest) -> SubjectContext:
         patient_ref=body.context.patient_ref,
         encounter_ref=body.context.encounter_ref,
         author_ref=body.context.author_ref,
-        encounter_start=body.context.encounter_start,
     )
 
 
@@ -126,7 +130,8 @@ async def _build(
         conversion_id=body.conversion_id,
         tenant_id=tenant_id,
         descriptor=descriptor,
-    ).model_copy(update={"preflight": preflight})
+        preflight=preflight,
+    )
     if preflight.status is PreflightStatus.FAILED:
         plan = plan.model_copy(update={"ready": False, "transaction": None})
     return report, plan

@@ -6,13 +6,13 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Response
+from fhiratwill import DeidPolicy
+from fhiratwill import deidentify as deidentify_text
 
 from fhirbridge.api.auth import Scope
 from fhirbridge.api.deps import PrincipalDep, SettingsDep
 from fhirbridge.api.routers.convert import declared_identifiers_of, deid_info_of
 from fhirbridge.api.schemas import DeidentifyRequest, DeidentifyResponse
-from fhirbridge.deid.minimize import minimize
-from fhirbridge.deid.policy import DeidPolicy
 from fhirbridge.domain.errors import PhiMinimizationRequiredError
 
 logger = logging.getLogger(__name__)
@@ -42,32 +42,27 @@ async def deidentify(
     response: Response,
 ) -> DeidentifyResponse:
     principal.require(Scope.CONVERSIONS_WRITE)
-    policy = DeidPolicy.from_settings(settings)
+    policy = DeidPolicy(mode=settings.deid_mode, profile=settings.deid_profile)
     if not policy.enforced:
         raise PhiMinimizationRequiredError(
             "Set DEID_MODE=enforced before using the de-identification endpoint."
         )
 
-    result = minimize(
+    result = deidentify_text(
         body.text,
         policy=policy,
-        declared=declared_identifiers_of(body.known_identifiers),
+        known_identifiers=declared_identifiers_of(body.known_identifiers),
     )
-    try:
-        result.assert_safe_payload(result.safe_text)
-        report = result.report()
-        logger.info(
-            "narrative_deidentified",
-            extra={
-                "profile": report.profile,
-                "ruleset_version": report.ruleset_version,
-                "replacement_count": report.replacements,
-            },
-        )
-        response.headers["Cache-Control"] = "no-store"
-        return DeidentifyResponse(text=result.safe_text, deid=deid_info_of(report))
-    finally:
-        result.close()
+    logger.info(
+        "narrative_deidentified",
+        extra={
+            "profile": result.profile,
+            "ruleset_version": result.ruleset_version,
+            "replacement_count": result.replacements,
+        },
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return DeidentifyResponse(text=result.text, deid=deid_info_of(result))
 
 
 __all__ = ["router"]

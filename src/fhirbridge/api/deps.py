@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, Header, Request
+from fhiratwill import TerminologyClient
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from fhirbridge.api.auth import Principal, Scope, authenticate_api_key, extract_bearer
@@ -46,7 +47,6 @@ from fhirbridge.llm.invocation import (
 )
 from fhirbridge.observability import context
 from fhirbridge.storage.session import privileged_session, tenant_session
-from fhirbridge.terminology.interface import TerminologyClient
 from fhirbridge.validation.cascade import ValidationCascade
 
 logger = logging.getLogger(__name__)

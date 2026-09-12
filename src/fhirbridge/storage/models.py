@@ -253,8 +253,10 @@ class DeliveryAttempt(Base, TenantMixin, CreatedAtMixin):
     )
     reviewer_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     response_status: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    resource_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    resource_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
 
     __table_args__ = (
         CheckConstraint(

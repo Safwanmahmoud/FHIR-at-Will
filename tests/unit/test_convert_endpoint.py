@@ -23,6 +23,7 @@ from fhiratwill.tags import (
 from fhirbridge.api.auth import Principal
 from fhirbridge.api.deps import get_llm_gateway, get_principal
 from fhirbridge.domain.errors import EgressBlockedError, LlmSchemaViolationError
+from fhirbridge.llm.extraction_rules import extraction_rules_text
 from tests.fakes import FakeLlmGateway
 
 EXTRACTED = {
@@ -221,6 +222,52 @@ class TestConvert:
         )
 
         assert response.status_code == 400
+
+    async def test_conversion_sends_the_composed_rule_pack(
+        self, app: FastAPI, client: httpx.AsyncClient
+    ) -> None:
+        """The core prompt alone has no denial or family-history guidance."""
+        gateway = nar2fhir_gateway()
+        app.dependency_overrides[get_llm_gateway] = lambda: gateway
+
+        await client.post("/v1/NAR2FHIR", json={"text": "HR 72"}, headers=BYOK_HEADERS)
+
+        system, _user = gateway.complete_calls[0]
+        assert extraction_rules_text() in system
+        assert "family member" in system
+        assert "`refuted`" in system
+
+    async def test_a_family_attributed_finding_does_not_become_a_patient_condition(
+        self, app: FastAPI, client: httpx.AsyncClient
+    ) -> None:
+        """Rule-following extraction for 'Father had colon cancer at 55.' emits nothing."""
+        gateway = FakeLlmGateway(
+            resource={
+                "entities": [
+                    {
+                        "resourceType": "Patient",
+                        "instance": "patient-1",
+                        "keyword": "gender",
+                        "value": "male",
+                    }
+                ]
+            }
+        )
+        app.dependency_overrides[get_llm_gateway] = lambda: gateway
+
+        body = (
+            await client.post(
+                "/v1/NAR2FHIR",
+                json={"text": "Father had colon cancer at 55."},
+                headers=BYOK_HEADERS,
+            )
+        ).json()
+
+        types = [entry["resource"]["resourceType"] for entry in body["bundle"]["entry"]]
+        assert "Condition" not in types
+        system, user = gateway.complete_calls[0]
+        assert "Father had colon cancer at 55." in user
+        assert "emit nothing" in system
 
     async def test_an_entity_without_an_instance_key_is_a_schema_violation(
         self, app: FastAPI, client: httpx.AsyncClient

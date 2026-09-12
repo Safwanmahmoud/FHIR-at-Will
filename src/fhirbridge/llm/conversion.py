@@ -22,12 +22,12 @@ from fhiratwill import (
     bind_bundle,
 )
 from fhiratwill.conversion import parse_entities
-from fhiratwill.conversion.prompts import NARRATIVE_TO_ENTITIES
 from fhiratwill.deid.core import minimize
 
 from fhirbridge.domain.errors import LlmSchemaViolationError
 from fhirbridge.llm.gateway import LlmGateway, LlmResult
 from fhirbridge.llm.invocation import LlmInvocation
+from fhirbridge.llm.prompts import NARRATIVE_TO_ENTITIES
 
 
 @dataclass(frozen=True, slots=True)

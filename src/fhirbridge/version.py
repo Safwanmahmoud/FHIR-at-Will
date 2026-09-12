@@ -15,8 +15,13 @@ from fhirbridge import __version__
 CODE_VERSION: Final[str] = __version__
 """Version of this service's code, stamped into every validation report."""
 
-PROMPT_SET_VERSION: Final[str] = "v5.3.0"
-"""Version of the hash-pinned prompt template set, stamped into conversion reports."""
+PROMPT_SET_VERSION: Final[str] = "v5.4.0"
+"""Version of the hash-pinned prompt template set, stamped into conversion reports.
+
+``v5.4.0`` composes the reviewed extraction rule pack onto the published
+``fhiratwill`` 0.2.0 prompt. The number is this service's pin; it is not the
+core's ``PROMPT_SET_VERSION``.
+"""
 
 DEID_RULESET_VERSION: Final[str] = "v1"
 """Version of the deterministic PHI de-identification rules and data set."""

@@ -5,6 +5,11 @@ semantic versioning after its first public release.
 
 ## Unreleased
 
+- Restore the reviewed extraction rule pack on top of `fhiratwill==0.2.0`
+  (`PROMPT_SET_VERSION` `v5.4.0`). The core split in `fed4303` dropped the pack
+  from the shipped prompt; conversion now composes it back on before the catalog
+  so denials become `verificationStatus: refuted` and a family member's history
+  is suppressed rather than recorded as a patient `Condition`.
 - Replace the duplicated framework-neutral core with the published
   `fhiratwill==0.2.0` package. The API now keeps only HTTP, policy, observability,
   persistence, sidecar transport, and delivery-submission integration code.

@@ -70,9 +70,7 @@ class ValidationCascade:
 def _observe(report: ValidationReport) -> None:
     VALIDATION_RUNS.labels(outcome=str(report.status)).inc()
     for layer in report.layers:
-        VALIDATION_LAYER_DURATION.labels(layer=str(layer.layer)).observe(
-            layer.duration_ms / 1000
-        )
+        VALIDATION_LAYER_DURATION.labels(layer=str(layer.layer)).observe(layer.duration_ms / 1000)
         if layer.skipped_reason:
             VALIDATION_LAYER_SKIPPED.labels(
                 layer=str(layer.layer),

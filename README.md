@@ -357,11 +357,13 @@ cannot honor a profile; pass profiles to `POST /v1/validate` instead.
 
 ### Extraction rules
 
-Where the narrative's shape and FHIR's shape disagree, a reviewed rule pack in
-[`src/fhirbridge/llm/extraction_rules.py`](src/fhirbridge/llm/extraction_rules.py)
-tells the model what to do. Rules are rendered into the extraction prompt and pinned
-by the prompt fingerprint, so adding one means appending to `EXTRACTION_RULES` and
-bumping `PROMPT_SET_VERSION`.
+Where the narrative's shape and FHIR's shape disagree, these rules say what to do. They
+are the reviewed contract rather than a description of the prompt in flight: the rule
+pack that was rendered into the extraction prompt did not survive the move to the
+published core, so the shipped prompt (`fhiratwill.conversion.prompts`, pinned by
+`REVIEWED_PROMPT_FINGERPRINT`) now states most of these rules in general form only, and
+the two about denials and medication phrases not at all — see
+[#1](https://github.com/Safwanmahmoud/FHIR-at-Will/issues/1).
 
 | Rule | Effect |
 |---|---|

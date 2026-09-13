@@ -9,13 +9,30 @@
 
 # FHIR at Will
 
-FHIR at Will is a verification-first API for FHIR R4. It validates existing FHIR
-resources and can turn clinical narrative into a FHIR Bundle using a caller-supplied
-model and provider key.
+This repository is the self-hostable **production API** for FHIR at Will. It is a
+verification-first HTTP service for FHIR R4: it validates existing resources and
+can turn clinical narrative into a FHIR Bundle using a caller-supplied model and
+provider key.
 
-The public project and product are named **FHIR at Will**. The installable Python
-package, import namespace, API title, and container service retain the shorter
-technical name **`fhirbridge`**.
+The conversion, de-identification, validation, terminology binding, and
+write-planning algorithms are **not** implemented here. They live in the Python
+library [`fhiratwill`](https://pypi.org/project/fhiratwill/)
+([source: fhirbridge](https://github.com/Safwanmahmoud/fhirbridge)). This service
+depends on that package and wraps it with FastAPI, API-key authentication,
+tenant PostgreSQL, the HL7 validator sidecar, BYOK policy, observability, and
+container images.
+
+| Name | What it is |
+|---|---|
+| **FHIR at Will** | Public product |
+| **This repository** ([FHIR-It-Will](https://github.com/Safwanmahmoud/FHIR-It-Will)) | Production HTTP API, Docker/Railway images, and deployment adapters |
+| **`fhirbridge`** | This service's Python package, container, and API title |
+| **[`fhiratwill`](https://github.com/Safwanmahmoud/fhirbridge)** | The installable library that actually processes narrative, FHIR, and plans |
+
+If you want to call the pipeline from your own Python code, install
+[`fhiratwill`](https://pypi.org/project/fhiratwill/) and read the
+[library README](https://github.com/Safwanmahmoud/fhirbridge#readme). This
+document is about deploying and calling the HTTP API.
 
 The generated Bundle is never presented as trusted output. It is returned beside a
 structured report covering conformance, terminology, clinical plausibility, skipped
@@ -29,7 +46,8 @@ checks, version provenance, and the final routing decision.
 
 - [Interactive playground](https://fhiratwill.com/playground.html)
 - [Website and API guide](https://fhiratwill.com/docs.html)
-- [Source code](https://github.com/Safwanmahmoud/FHIR-It-Will)
+- [This API (source)](https://github.com/Safwanmahmoud/FHIR-It-Will)
+- [Python library `fhiratwill` (source)](https://github.com/Safwanmahmoud/fhirbridge)
 
 The hosted playground supports:
 
@@ -62,12 +80,16 @@ The current build targets:
 
 `GET /v1/capabilities` reports implemented and unavailable functionality at runtime.
 
-The framework-neutral conversion, de-identification, validation, terminology
-binding, and write-planning core is provided by the
-[`fhiratwill`](https://pypi.org/project/fhiratwill/) package. This repository
-contains the FastAPI service and its deployment-specific adapters.
+This service's HTTP contract, policy gates, and sidecar adapters sit on top of
+[`fhiratwill`](https://pypi.org/project/fhiratwill/). How the cascade, assembly,
+binding, and write-planning actually work is documented in the
+[library README](https://github.com/Safwanmahmoud/fhirbridge#readme).
 
 ## How validation works
+
+The eight-layer cascade is `fhiratwill.validate`. This service injects the HL7
+validator sidecar and the terminology-server adapter so profile, terminology, and
+invariant layers can run, then returns the library's report over HTTP.
 
 Every report contains all eight layers. A check that could not run is marked
 `skipped` or `not_applicable`; it is never allowed to look like a pass.
@@ -127,6 +149,11 @@ flowchart LR
     API --> DB[(PostgreSQL<br>tenant RLS)]
     API --> Observability[Logs / metrics / traces]
 ```
+
+Boxes labeled Cascade, Convert, Assemble, Bind, and Plan are
+[`fhiratwill`](https://github.com/Safwanmahmoud/fhirbridge) running inside this
+process. The API process supplies HTTP, auth, BYOK policy, sidecar clients, and
+delivery submission.
 
 The validator has no authentication and can fetch external resources, so it must stay
 on a private network. PostgreSQL migrations run as the database owner, while the API
@@ -319,13 +346,20 @@ A bare FHIR resource is also accepted with
 
 ## NAR2FHIR: convert narrative to FHIR
 
-`POST /v1/NAR2FHIR` is synchronous, stateless, and BYOK. It makes **one** model
-call, which extracts catalog-constrained resource types, keys, and values, each
-tagged with an `instance` key identifying which real-world thing it describes.
-Assembly into typed FHIR is then deterministic Python: no model sees the Bundle, so
-the same entities always produce the same Bundle.
+`POST /v1/NAR2FHIR` is the HTTP front door for `fhiratwill.text2fhir`:
+synchronous, stateless, and BYOK. It makes **one** model call, which extracts
+catalog-constrained resource types, keys, and values, each tagged with an
+`instance` key identifying which real-world thing it describes. Assembly into
+typed FHIR is then deterministic Python in the library: no model sees the
+Bundle, so the same entities always produce the same Bundle.
 
-That boundary is deliberate. Choosing a FHIR datatype has one correct answer and
+This service adds the Bearer key, `X-LLM-*` headers, egress and qualification
+gates, and a reviewed extraction-rule overlay composed onto the published
+library prompt. For the library call shape (`text2fhir`, `LlmClient`,
+`assemble_bundle`), see the
+[fhirbridge README](https://github.com/Safwanmahmoud/fhirbridge#readme).
+
+The model-versus-assembly boundary is deliberate. Choosing a FHIR datatype has one correct answer and
 does not need a model, while a model asked to do it may invent a
 `Coding.system`/`code` pair or nest a string where an object belongs. Assembly
 therefore refuses rather than approximates — `"62-year-old"` does not become a
@@ -357,13 +391,13 @@ cannot honor a profile; pass profiles to `POST /v1/validate` instead.
 
 ### Extraction rules
 
-Where the narrative's shape and FHIR's shape disagree, these rules say what to do. They
-are the reviewed contract rather than a description of the prompt in flight: the rule
-pack that was rendered into the extraction prompt did not survive the move to the
-published core, so the shipped prompt (`fhiratwill.conversion.prompts`, pinned by
-`REVIEWED_PROMPT_FINGERPRINT`) now states most of these rules in general form only, and
-the two about denials and medication phrases not at all — see
-[#1](https://github.com/Safwanmahmoud/FHIR-at-Will/issues/1).
+Where the narrative's shape and FHIR's shape disagree, a reviewed rule pack in
+[`src/fhirbridge/llm/extraction_rules.py`](src/fhirbridge/llm/extraction_rules.py)
+tells the model what to do. That pack is **this service's overlay** on the
+published `fhiratwill` extraction prompt; it did not move with the core split.
+The composed prompt is pinned by this service's prompt fingerprint
+(`PROMPT_SET_VERSION` `v5.4.0`), so adding a rule means appending to
+`EXTRACTION_RULES` and bumping that version.
 
 | Rule | Effect |
 |---|---|
@@ -457,9 +491,10 @@ capabilities vary by provider.
 
 ## VOICE2FHIR: convert dictated audio to FHIR
 
-`POST /v1/VOICE2FHIR` is `NAR2FHIR` with a transcription step in front. It transcribes
-dictated clinical audio verbatim, then runs the transcript through the exact same
-grounded extraction and deterministic assembly, so nothing about the conversion changes
+`POST /v1/VOICE2FHIR` is the HTTP front door for `fhiratwill.voice2fhir`:
+`NAR2FHIR` with a transcription step in front. It transcribes dictated clinical
+audio verbatim, then runs the transcript through the exact same grounded
+extraction and deterministic assembly, so nothing about the conversion changes
 because the narrative arrived as speech. It returns everything `NAR2FHIR` does, plus:
 
 - `transcript` — the verbatim text the model heard, and the input to extraction; and
@@ -686,15 +721,21 @@ after changing dependencies.
 
 ## Repository layout
 
+The processing core (`validate`, `text2fhir`, `assemble_bundle`, `bind_bundle`,
+`compile_write_plan`) is the `fhiratwill` dependency. Paths below are this
+service's HTTP, policy, persistence, and sidecar adapters.
+
 | Path | Contents |
 |---|---|
 | `src/fhirbridge/api/` | FastAPI app, auth, schemas, middleware, and routers |
-| `src/fhirbridge/validation/` | Cascade orchestration, reports, and rule packs |
-| `src/fhirbridge/llm/` | BYOK gateway (completion and dictation), policy gates, qualification, extraction rules, the shared narrative-to-FHIR pipeline, and prompts |
-| `src/fhirbridge/fhir/` | Typed models, deterministic Bundle assembly, `OperationOutcome`, validator client |
-| `src/fhirbridge/terminology/` | Terminology client and result models |
+| `src/fhirbridge/llm/` | BYOK gateway, policy gates, qualification, service extraction-rule overlay, and the adapter that calls `fhiratwill` |
+| `src/fhirbridge/validation/` | Service adapter around `fhiratwill.validate`, plus metrics |
+| `src/fhirbridge/fhir/` | HL7 validator HTTP client, `OperationOutcome`, resource allowlist |
+| `src/fhirbridge/terminology/` | FHIR terminology-server HTTP client |
+| `src/fhirbridge/delivery/` | Destination preflight, write-plan headers, and transaction submission |
 | `src/fhirbridge/storage/` | SQLAlchemy models, tenant sessions, and RLS checks |
 | `src/fhirbridge/observability/` | Logging, redaction, metrics, and tracing |
+| `src/fhirbridge/domain/` | Service error codes and identifiers |
 | `docker/` | API and validator images |
 | `alembic/` | Database migrations |
 | `scripts/bootstrap.py` | App-role, tenant, and API-key provisioning |

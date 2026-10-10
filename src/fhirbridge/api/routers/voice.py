@@ -206,7 +206,7 @@ async def voice2fhir(
             "model": result.extraction.model,
             "audio_bytes": len(raw),
             "audio_format": media_format,
-            "resource_count": len(assembled.bundle["entry"]),
+            "resource_count": len(result.binding.bundle.get("entry") or []),
             "inferred_count": sum(
                 1 for note in assembled.notes if note.action is AssemblyAction.INFERRED
             ),

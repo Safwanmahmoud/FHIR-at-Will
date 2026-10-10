@@ -114,7 +114,7 @@ class TestVoiceConvert:
             if entry["resource"]["resourceType"] == "Observation"
         )
         assert observation["valueQuantity"]["value"] == 72
-        assert observation["valueQuantity"]["code"] == "/min"
+        assert observation["valueQuantity"]["unit"] == "/min"
         assert body["assembly"], "required elements the audio did not state should be reported"
 
     async def test_a_content_type_free_upload_falls_back_to_the_extension(

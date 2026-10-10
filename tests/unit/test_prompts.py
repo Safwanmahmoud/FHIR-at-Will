@@ -21,7 +21,7 @@ from fhirbridge.llm.prompts import (
     prompt_set_fingerprint,
 )
 
-PINNED_FINGERPRINT = "61aaa24b2b7cfa548902a7588d9c45da91c9ea3b302a68773eff45951883bfe2"
+PINNED_FINGERPRINT = "f0570c8b97459ff6dc7ffbf9b0f114e88ebb1958a002cbb7bc98ec5989995bea"
 
 
 def test_the_prompt_set_has_not_drifted_from_its_pinned_hash() -> None:
@@ -36,7 +36,7 @@ def test_the_fingerprint_is_deterministic() -> None:
 
 
 def test_the_version_is_stamped_and_the_set_is_populated() -> None:
-    assert PROMPT_SET_VERSION == "v5.4.0"
+    assert PROMPT_SET_VERSION == "v5.6.0"
     assert NARRATIVE_TO_ENTITIES.id in PROMPT_SET
     assert DICTATION_TRANSCRIBE.id in PROMPT_SET
 
@@ -52,15 +52,15 @@ def test_the_extraction_rule_pack_is_embedded() -> None:
     assert extraction_rules_text() in NARRATIVE_TO_ENTITIES.system
 
 
-def test_the_rules_come_before_the_catalog() -> None:
+def test_the_rules_come_before_the_schema() -> None:
     system = NARRATIVE_TO_ENTITIES.system
 
-    assert system.index("Extraction rules") < system.index("Catalog:")
+    assert system.index("Extraction rules") < system.index("Schema:")
 
 
-def test_composition_fails_closed_if_the_core_catalog_heading_disappears() -> None:
-    with pytest.raises(RuntimeError, match="Catalog heading"):
-        compose_extraction_system("no catalog here", extraction_rules_text())
+def test_composition_fails_closed_if_the_core_schema_heading_disappears() -> None:
+    with pytest.raises(RuntimeError, match="Schema heading"):
+        compose_extraction_system("no schema here", extraction_rules_text())
 
 
 def test_the_composed_prompt_is_not_the_bare_core_prompt() -> None:

@@ -113,11 +113,12 @@ class TestSafetyCriticalContent:
         assert "Patient.birthDate" in guidance
         assert "`Age`" in guidance, "the rule must say where the age does go"
 
-    def test_family_history_is_suppressed_rather_than_recorded_as_a_condition(self) -> None:
+    def test_family_history_is_recorded_on_the_relative_not_the_patient(self) -> None:
         guidance = NEGATED_AND_ATTRIBUTED_FINDINGS.guidance
 
         assert "family member" in guidance
-        assert "emit nothing" in guidance
+        assert "FamilyMemberHistory" in guidance
+        assert "not `Condition`" in guidance
 
     def test_a_denial_is_recorded_as_refuted_rather_than_dropped(self) -> None:
         guidance = NEGATED_AND_ATTRIBUTED_FINDINGS.guidance
@@ -148,7 +149,7 @@ class TestFamilyAttributedFindings:
         )
 
         assembled = assemble_bundle(entities, seed="family-history")
-        types = [entry["resource"]["resourceType"] for entry in assembled.bundle["entry"]]
+        types = [entry["resource"]["resourceType"] for entry in assembled.bundle_dict["entry"]]
 
         assert "Condition" not in types
 
@@ -176,7 +177,7 @@ class TestFamilyAttributedFindings:
         assembled = assemble_bundle(entities, seed="misattributed")
         condition = next(
             entry["resource"]
-            for entry in assembled.bundle["entry"]
+            for entry in assembled.bundle_dict["entry"]
             if entry["resource"]["resourceType"] == "Condition"
         )
 

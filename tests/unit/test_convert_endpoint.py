@@ -129,7 +129,7 @@ class TestConvert:
         assert observation["code"]["text"] == "heart rate"
         assert observation["code"]["coding"][0]["code"] == "8867-4"
         assert observation["valueQuantity"]["value"] == 72
-        assert observation["valueQuantity"]["code"] == "/min"
+        assert observation["valueQuantity"]["unit"] == "/min"
         assert observation["subject"]["reference"] == body["bundle"]["entry"][0]["fullUrl"]
 
     async def test_the_same_entities_produce_the_same_bundle_content(
@@ -240,7 +240,7 @@ class TestConvert:
     async def test_a_family_attributed_finding_does_not_become_a_patient_condition(
         self, app: FastAPI, client: httpx.AsyncClient
     ) -> None:
-        """Rule-following extraction for 'Father had colon cancer at 55.' emits nothing."""
+        """Rule-following extraction records the relative on FamilyMemberHistory."""
         gateway = FakeLlmGateway(
             resource={
                 "entities": [
@@ -249,7 +249,19 @@ class TestConvert:
                         "instance": "patient-1",
                         "keyword": "gender",
                         "value": "male",
-                    }
+                    },
+                    {
+                        "resourceType": "FamilyMemberHistory",
+                        "instance": "fmh-father",
+                        "keyword": "relationship",
+                        "value": "father",
+                    },
+                    {
+                        "resourceType": "FamilyMemberHistory",
+                        "instance": "fmh-father",
+                        "keyword": "condition",
+                        "value": "colon cancer",
+                    },
                 ]
             }
         )
@@ -265,11 +277,12 @@ class TestConvert:
 
         types = [entry["resource"]["resourceType"] for entry in body["bundle"]["entry"]]
         assert "Condition" not in types
+        assert "FamilyMemberHistory" in types
         system, user = gateway.complete_calls[0]
         assert "Father had colon cancer at 55." in user
-        assert "emit nothing" in system
+        assert "FamilyMemberHistory" in system
 
-    async def test_an_entity_without_an_instance_key_is_a_schema_violation(
+    async def test_an_entity_without_an_instance_key_is_assigned_one(
         self, app: FastAPI, client: httpx.AsyncClient
     ) -> None:
         gateway = FakeLlmGateway(
@@ -283,7 +296,8 @@ class TestConvert:
 
         response = await client.post("/v1/NAR2FHIR", json={"text": "x"}, headers=BYOK_HEADERS)
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert resource_at(response.json(), "Patient")["gender"] == "male"
 
     async def test_it_requires_the_conversions_write_scope(
         self, app: FastAPI, client: httpx.AsyncClient

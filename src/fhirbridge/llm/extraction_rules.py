@@ -135,16 +135,23 @@ NEGATED_AND_ATTRIBUTED_FINDINGS: Final[ExtractionRule] = ExtractionRule(
         "For a condition the narrative explicitly denies or rules out, emit the "
         "Condition with its `code` and a `verificationStatus` of `refuted`, so the "
         "denial survives rather than vanishing.\n"
-        "For a condition belonging to a family member, emit nothing at all. This catalog "
-        "has no resource that can attribute a condition to anyone but the patient, and a "
-        "`Condition` would state that the patient has it."
+        "For a condition belonging to a family member, emit `FamilyMemberHistory`, "
+        "not `Condition`. Put the relative in `relationship` (for example `father`) "
+        "and the diagnosis in `condition`. A `Condition` would state that the patient "
+        "has it."
     ),
-    elements=("Condition.code", "Condition.verificationStatus"),
+    elements=(
+        "Condition.code",
+        "Condition.verificationStatus",
+        "FamilyMemberHistory.relationship",
+        "FamilyMemberHistory.condition",
+    ),
     rationale=(
         "The highest-severity extraction error available: 'father had colon cancer' or "
         "'denies chest pain' becoming an active patient diagnosis. Nothing downstream "
         "catches it, because the resource is perfectly conformant. FamilyMemberHistory "
-        "is not in the catalog, so suppression is the only safe handling until it is."
+        "is in the catalog, so the relative's disease is recorded there instead of "
+        "being dropped or pinned on the patient."
     ),
 )
 

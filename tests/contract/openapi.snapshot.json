@@ -52,6 +52,162 @@
         "title": "AssemblyNote",
         "type": "object"
       },
+      "BindNeighbor": {
+        "additionalProperties": false,
+        "description": "One nearest-neighbor catalog hit.",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "coding": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Coding",
+            "type": "object"
+          },
+          "dictionary": {
+            "title": "Dictionary",
+            "type": "string"
+          },
+          "display": {
+            "title": "Display",
+            "type": "string"
+          },
+          "leaf": {
+            "title": "Leaf",
+            "type": "boolean"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "system": {
+            "title": "System",
+            "type": "string"
+          }
+        },
+        "required": [
+          "dictionary",
+          "system",
+          "code",
+          "display",
+          "matched_text",
+          "leaf",
+          "score",
+          "coding"
+        ],
+        "title": "BindNeighbor",
+        "type": "object"
+      },
+      "BindRequest": {
+        "additionalProperties": false,
+        "description": "Body of ``POST /v1/bind``.\n\nThe phrase is sent in the body, never a query parameter, because it may\ndescribe a patient's clinical state.",
+        "properties": {
+          "dictionaries": {
+            "description": "Restrict search to these dictionary names. Empty means all loaded.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Dictionaries",
+            "type": "array"
+          },
+          "k": {
+            "default": 5,
+            "description": "Neighbor count.",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "K",
+            "type": "integer"
+          },
+          "leaves_only": {
+            "default": true,
+            "description": "Prefer billable/leaf catalog rows when the dictionary marks them.",
+            "title": "Leaves Only",
+            "type": "boolean"
+          },
+          "min_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "If set, abstain when the nearest cosine is below this threshold.",
+            "title": "Min Score"
+          },
+          "query": {
+            "description": "Free-text phrase to bind.",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "BindRequest",
+        "type": "object"
+      },
+      "BindResponse": {
+        "additionalProperties": false,
+        "description": "Body of ``POST /v1/bind``.",
+        "properties": {
+          "coding": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coding"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "neighbors": {
+            "items": {
+              "$ref": "#/components/schemas/BindNeighbor"
+            },
+            "title": "Neighbors",
+            "type": "array"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "score_mean": {
+            "title": "Score Mean",
+            "type": "number"
+          },
+          "score_std": {
+            "title": "Score Std",
+            "type": "number"
+          }
+        },
+        "required": [
+          "query",
+          "confidence",
+          "score_mean",
+          "score_std"
+        ],
+        "title": "BindResponse",
+        "type": "object"
+      },
       "BindingAction": {
         "enum": [
           "bound",
@@ -2397,6 +2553,73 @@
         "summary": "Transcribe dictated audio and convert it to an unvalidated FHIR Bundle (BYOK)",
         "tags": [
           "conversion"
+        ]
+      }
+    },
+    "/v1/bind": {
+      "post": {
+        "operationId": "post_bind",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BindRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BindResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "503": {
+            "description": "The terminology index could not be loaded."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Bind a free-text phrase to the nearest catalog code (ICD-10-CM by default)",
+        "tags": [
+          "terminology"
         ]
       }
     },

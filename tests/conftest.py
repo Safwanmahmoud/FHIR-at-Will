@@ -225,3 +225,53 @@ def all_dependencies_healthy(
 ) -> None:
     """Every dependency answering successfully. Use when the outage is not the point."""
     del validator_clean, fhirpath_true, terminology_valid
+
+
+@pytest.fixture(autouse=True)
+def nn_index() -> Iterator[None]:
+    """Keep unit tests off SapBERT. Maps the conversion fixture phrase to LOINC."""
+    import numpy as np
+    from fhiratwill.terminology_binder import Dictionary, TerminologyIndex
+
+    from fhirbridge.terminology.nn_index import set_index
+
+    class _Encoder:
+        def encode(
+            self,
+            sentences: list[str],
+            *,
+            batch_size: int = 64,
+            convert_to_numpy: bool = True,
+            normalize_embeddings: bool = True,
+            show_progress_bar: bool = False,
+        ) -> np.ndarray:
+            del batch_size, convert_to_numpy, show_progress_bar
+            rows = []
+            for sentence in sentences:
+                key = sentence.casefold()
+                if "heart rate" in key or key == "pulse":
+                    vector = np.array([1.0, 0.0], dtype=np.float32)
+                else:
+                    vector = np.array([0.0, 1.0], dtype=np.float32)
+                if normalize_embeddings:
+                    vector = vector / (float(np.linalg.norm(vector)) or 1.0)
+                rows.append(vector)
+            return np.stack(rows)
+
+    catalog = Dictionary.from_payload(
+        [
+            {
+                "code": "8867-4",
+                "display": "Heart rate",
+                "aliases": ["pulse"],
+                "leaf": True,
+            }
+        ],
+        name="loinc",
+        system="http://loinc.org",
+    )
+    set_index(TerminologyIndex.load(catalog, include_default=False, encoder=_Encoder()))
+    try:
+        yield
+    finally:
+        set_index(None)

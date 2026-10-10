@@ -15,12 +15,12 @@ from fhirbridge import __version__
 CODE_VERSION: Final[str] = __version__
 """Version of this service's code, stamped into every validation report."""
 
-PROMPT_SET_VERSION: Final[str] = "v5.4.0"
+PROMPT_SET_VERSION: Final[str] = "v5.6.0"
 """Version of the hash-pinned prompt template set, stamped into conversion reports.
 
-``v5.4.0`` composes the reviewed extraction rule pack onto the published
-``fhiratwill`` 0.2.0 prompt. The number is this service's pin; it is not the
-core's ``PROMPT_SET_VERSION``.
+``v5.6.0`` composes the service rule pack onto fhiratwill 0.4.0's fill-in-the-blanks
+schema (all catalog resource types) instead of the retired ``Catalog:`` heading.
+The number is this service's pin; it is not the core's ``PROMPT_SET_VERSION``.
 """
 
 DEID_RULESET_VERSION: Final[str] = "v1"

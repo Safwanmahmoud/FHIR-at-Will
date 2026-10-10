@@ -14,9 +14,9 @@ from fhiratwill import (
     ValidationReport,
     ValidationSpec,
     WritePlan,
-    bind_bundle,
     compile_write_plan,
 )
+from fhiratwill.terminology_binder import bind_bundle
 from sqlalchemy import select
 
 from fhirbridge.api.auth import Scope
@@ -47,6 +47,7 @@ from fhirbridge.domain.errors import (
 )
 from fhirbridge.domain.ids import IdPrefix, new_id
 from fhirbridge.storage.models import DeliveryAttempt, IdempotencyKey
+from fhirbridge.terminology.nn_index import get_index
 
 router = APIRouter(prefix="/v1", tags=["delivery"])
 
@@ -104,7 +105,7 @@ async def _build(
             "The requested delivery target is not configured.",
             safe_context={"target_id": target.target_id},
         )
-    bound = await bind_bundle(body.bundle, client=terminology)
+    bound = await bind_bundle(body.bundle, index=get_index(), client=terminology)
     report = await cascade.run(
         bound.bundle,
         ValidationSpec(

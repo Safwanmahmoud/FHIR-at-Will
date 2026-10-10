@@ -10,10 +10,10 @@ from typing import Annotated, Any, Literal
 
 from fhiratwill import (
     AssemblyAction,
-    BindingAction,
     FailurePolicy,
     ValidationReport,
 )
+from fhiratwill.terminology_binder import BindingAction
 from fhiratwill.validation import IssueSeverity, ValidationLayer
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -191,6 +191,59 @@ class BindingNote(BaseModel):
     value_set: str | None = None
     candidate_count: Annotated[int, Field(ge=0)] = 0
     detail: str
+
+
+class BindRequest(BaseModel):
+    """Body of ``POST /v1/bind``.
+
+    The phrase is sent in the body, never a query parameter, because it may
+    describe a patient's clinical state.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str = Field(min_length=1, max_length=500, description="Free-text phrase to bind.")
+    k: Annotated[int, Field(ge=1, le=20)] = Field(default=5, description="Neighbor count.")
+    leaves_only: bool = Field(
+        default=True,
+        description="Prefer billable/leaf catalog rows when the dictionary marks them.",
+    )
+    min_score: float | None = Field(
+        default=None,
+        description="If set, abstain when the nearest cosine is below this threshold.",
+    )
+    dictionaries: list[str] = Field(
+        default_factory=list,
+        description="Restrict search to these dictionary names. Empty means all loaded.",
+    )
+
+
+class BindNeighbor(BaseModel):
+    """One nearest-neighbor catalog hit."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    dictionary: str
+    system: str
+    code: str
+    display: str
+    matched_text: str
+    leaf: bool
+    score: float
+    coding: dict[str, str]
+
+
+class BindResponse(BaseModel):
+    """Body of ``POST /v1/bind``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str
+    coding: dict[str, str] | None = None
+    confidence: float
+    score_mean: float
+    score_std: float
+    neighbors: list[BindNeighbor] = Field(default_factory=list)
 
 
 class BindingInfo(BaseModel):
@@ -426,6 +479,9 @@ class CapabilitiesResponse(BaseModel):
 
 __all__ = [
     "AssemblyNote",
+    "BindNeighbor",
+    "BindRequest",
+    "BindResponse",
     "BindingInfo",
     "BindingNote",
     "CapabilitiesResponse",

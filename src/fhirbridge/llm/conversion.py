@@ -12,22 +12,22 @@ from dataclasses import dataclass
 
 from fhiratwill import (
     AssembledBundle,
-    BoundBundle,
     DeclaredIdentifier,
     DeidentifyResult,
     DeidPolicy,
     ExtractionSchemaError,
     TerminologyClient,
     assemble_bundle,
-    bind_bundle,
 )
-from fhiratwill.conversion import parse_entities
+from fhiratwill.conversion import parse_entities, parse_filled_resources
 from fhiratwill.deid.core import minimize
+from fhiratwill.terminology_binder import BoundBundle, bind_bundle
 
 from fhirbridge.domain.errors import LlmSchemaViolationError
 from fhirbridge.llm.gateway import LlmGateway, LlmResult
 from fhirbridge.llm.invocation import LlmInvocation
 from fhirbridge.llm.prompts import NARRATIVE_TO_ENTITIES
+from fhirbridge.terminology.nn_index import get_index
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,12 +73,20 @@ async def convert_narrative(
             minimization=minimization,
         )
         try:
-            entities = parse_entities(extraction.resource)
+            payload = extraction.resource
+            if isinstance(payload, dict) and "resources" in payload:
+                entities = parse_filled_resources(payload)
+            else:
+                entities = parse_entities(payload)
         except ExtractionSchemaError as exc:
             raise LlmSchemaViolationError(str(exc)) from exc
         restored = minimization.restore_entities(entities)
         assembled = assemble_bundle(restored, seed=conversion_id)
-        binding = await bind_bundle(assembled.bundle, client=terminology)
+        binding = await bind_bundle(
+            getattr(assembled, "bundle_dict", assembled.bundle),
+            index=get_index(),
+            client=terminology,
+        )
         report = minimization.result()
         return ConversionResult(
             assembled=assembled,

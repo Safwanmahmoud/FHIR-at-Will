@@ -48,6 +48,7 @@ IMPLEMENTED_ENDPOINTS: list[str] = [
     "POST /v1/validate",
     "POST /v1/validate/outcome",
     "POST /v1/NAR2FHIR",
+    "POST /v1/bind",
     "POST /v1/deidentify",
     "POST /v1/VOICE2FHIR",
     "POST /v1/write-plan",

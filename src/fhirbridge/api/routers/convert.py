@@ -198,7 +198,7 @@ async def nar2fhir(
             "conversion_id": conversion_id,
             "actor_id": principal.actor_id,
             "model": result.extraction.model,
-            "resource_count": len(assembled.bundle["entry"]),
+            "resource_count": len(result.binding.bundle.get("entry") or []),
             "inferred_count": sum(
                 1 for note in assembled.notes if note.action is AssemblyAction.INFERRED
             ),

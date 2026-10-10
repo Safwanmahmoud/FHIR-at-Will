@@ -13,37 +13,42 @@ from __future__ import annotations
 import hashlib
 from typing import Final
 
-from fhiratwill.conversion.prompts import DICTATION_TRANSCRIBE, PromptTemplate
+from fhiratwill.conversion.extraction import RESOURCE_PROFILES
+from fhiratwill.conversion.prompts import DICTATION_TRANSCRIBE, PromptTemplate, fill_system_prompt
 from fhiratwill.conversion.prompts import NARRATIVE_TO_ENTITIES as CORE_NARRATIVE_TO_ENTITIES
 
 from fhirbridge.llm.extraction_rules import extraction_rules_text
 from fhirbridge.version import PROMPT_SET_VERSION
 
-_CATALOG_HEADING = "\n\nCatalog:\n"
+_SCHEMA_HEADING = "\n\nSchema:\n"
 _RULES_HEADING = (
     "Extraction rules. These override the general guidance above where they conflict:\n\n"
 )
 
 
 def compose_extraction_system(core_system: str, rules: str) -> str:
-    """Insert the reviewed pack before the catalog, not after it.
+    """Insert the reviewed pack before the schema, not after it.
 
-    The catalog is long; guidance buried after it is easy for a model to lose.
-    If the core prompt no longer has a catalog heading, fail closed rather than
+    The schema is long; guidance buried after it is easy for a model to lose.
+    If the core prompt no longer has a schema heading, fail closed rather than
     send an uncomposed prompt that silently drops the safety rules.
     """
-    preamble, separator, catalog = core_system.partition(_CATALOG_HEADING)
+    normalized = core_system.replace("\u2014", "--")
+    preamble, separator, schema = normalized.partition(_SCHEMA_HEADING)
     if not separator:
         raise RuntimeError(
-            "The core extraction prompt no longer contains a Catalog heading; "
+            "The core extraction prompt no longer contains a Schema heading; "
             "refusing to send an uncomposed prompt."
         )
-    return f"{preamble}\n\n{_RULES_HEADING}{rules}{separator}{catalog}"
+    return f"{preamble}\n\n{_RULES_HEADING}{rules}{separator}{schema}"
 
 
 NARRATIVE_TO_ENTITIES: Final[PromptTemplate] = PromptTemplate(
     id=CORE_NARRATIVE_TO_ENTITIES.id,
-    system=compose_extraction_system(CORE_NARRATIVE_TO_ENTITIES.system, extraction_rules_text()),
+    system=compose_extraction_system(
+        fill_system_prompt(sorted(RESOURCE_PROFILES)),
+        extraction_rules_text(),
+    ),
     user_template=CORE_NARRATIVE_TO_ENTITIES.user_template,
 )
 

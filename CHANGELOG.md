@@ -5,6 +5,13 @@ semantic versioning after its first public release.
 
 ## Unreleased
 
+- Add `POST /v1/bind` for nearest-neighbor ICD-10-CM phrase binding, and use
+  `fhiratwill.terminology_binder` on NAR2FHIR, voice, and delivery. Requires
+  `fhiratwill==0.4.0`.
+- Compose the service rule pack onto fhiratwill 0.4.0's fill-in-the-blanks
+  schema (`PROMPT_SET_VERSION` `v5.6.0`).
+- Align conversion with the 20-type fhiratwill catalog and record a
+  relative's disease as `FamilyMemberHistory` (`PROMPT_SET_VERSION` `v5.5.0`).
 - Restore the reviewed extraction rule pack on top of `fhiratwill==0.2.0`
   (`PROMPT_SET_VERSION` `v5.4.0`). The core split in `fed4303` dropped the pack
   from the shipped prompt; conversion now composes it back on before the catalog

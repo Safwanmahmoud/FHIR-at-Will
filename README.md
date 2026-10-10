@@ -63,7 +63,7 @@ The hosted playground supports:
 | Terminology validation within the validation cascade | Implemented |
 | Clinical plausibility rules | Implemented |
 | Grounded BYOK narrative extraction with deterministic FHIR assembly (`/v1/NAR2FHIR`) | Implemented |
-| Terminology-verified binding for common vital signs and UCUM units | Implemented |
+| Nearest-neighbor terminology binding (ICD-10-CM by default; `/v1/bind`) | Implemented |
 | Dictated-audio conversion via speech-to-text (`/v1/VOICE2FHIR`) | Implemented |
 | Generic FHIR R4 write planning, context preflight, and transaction delivery | Implemented |
 | FHIR `OperationOutcome` validation response | Implemented |
@@ -364,10 +364,10 @@ does not need a model, while a model asked to do it may invent a
 `Coding.system`/`code` pair or nest a string where an object belongs. Assembly
 therefore refuses rather than approximates — `"62-year-old"` does not become a
 `birthDate`, and `"128/82 mmHg"` does not become a `Quantity` of 128 — and coded
-concepts leave assembly as text only. A separate networked binding stage then applies
-only a unique candidate verified by the terminology service. Common vital-sign
-concepts and UCUM units are coded when uniquely bindable; ambiguous or unverifiable
-concepts preserve their text without a code.
+concepts leave assembly as text only. A separate nearest-neighbor binding stage
+then codes `CodeableConcept.text` against the loaded dictionaries (ICD-10-CM by
+default). Ambiguous or low-confidence matches stay as text. `POST /v1/bind`
+exposes the same catalog search for a free-text phrase.
 
 It does not validate the generated Bundle. The response returns:
 
@@ -396,7 +396,7 @@ Where the narrative's shape and FHIR's shape disagree, a reviewed rule pack in
 tells the model what to do. That pack is **this service's overlay** on the
 published `fhiratwill` extraction prompt; it did not move with the core split.
 The composed prompt is pinned by this service's prompt fingerprint
-(`PROMPT_SET_VERSION` `v5.4.0`), so adding a rule means appending to
+(`PROMPT_SET_VERSION` `v5.6.0`), so adding a rule means appending to
 `EXTRACTION_RULES` and bumping that version.
 
 | Rule | Effect |
@@ -404,7 +404,7 @@ The composed prompt is pinned by this service's prompt fingerprint
 | An age is not a birth date | `62-year-old` becomes an `Age` Observation of `62 years`; `Patient.birthDate` is never computed from an age |
 | One measurement per value | `128/82 mmHg` becomes separate systolic and diastolic Observations |
 | Resolve dates only against a stated anchor | Relative dates resolve only when the narrative states the anchor, at the precision the phrase supports |
-| Never turn a denial or a relative's history into a diagnosis | A denied condition becomes `verificationStatus: refuted`; a family member's condition is dropped |
+| Never turn a denial or a relative's history into a diagnosis | A denied condition becomes `verificationStatus: refuted`; a family member's condition becomes `FamilyMemberHistory` |
 | Split a medication phrase | `metformin` and `500 mg by mouth twice daily` land in separate elements |
 | One instance per real-world thing | Each distinct measurement, condition, encounter, and medication gets its own `instance` |
 
@@ -578,15 +578,16 @@ and audio with no discernible speech returns `422`. `/v1/VOICE2FHIR` requires th
 | `POST` | `/v1/validate` | Structured validation report |
 | `POST` | `/v1/validate/outcome` | Validation as `OperationOutcome` |
 | `POST` | `/v1/deidentify` | Replace detected narrative identifiers using the enforced de-identification profile |
-| `POST` | `/v1/NAR2FHIR` | Grounded BYOK extraction, deterministic FHIR assembly  |
+| `POST` | `/v1/NAR2FHIR` | Grounded BYOK extraction, deterministic FHIR assembly, ICD-10-CM binding  |
+| `POST` | `/v1/bind` | Bind a free-text phrase to the nearest catalog code (ICD-10-CM by default) |
 | `POST` | `/v1/VOICE2FHIR` | Transcribe dictated audio, then convert as `/v1/NAR2FHIR`  |
 | `GET` | `/v1/targets` | List implemented delivery targets |
 | `POST` | `/v1/write-plan` | Verify destination context and compile a target write plan |
 | `POST` | `/v1/deliver` | Submit an eligible plan with request and resource idempotency |
 
-Validation endpoints require authentication but no specific scope. `/v1/NAR2FHIR` and
-`/v1/VOICE2FHIR` require `conversions:write`; a missing required scope returns `403
-forbidden`. Delivery endpoints require `deliveries:write`; see the
+Validation endpoints require authentication but no specific scope. `/v1/NAR2FHIR`,
+`/v1/VOICE2FHIR`, and `/v1/bind` require `conversions:write`; a missing required
+scope returns `403 forbidden`. Delivery endpoints require `deliveries:write`; see the
 [delivery guide](docs/delivery.md) for target headers and safeguards.
 
 ## Fail-closed behavior

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
 import threading
+from pathlib import Path
 
 from fhiratwill.terminology_binder import TerminologyIndex
 
@@ -15,6 +18,44 @@ _LOCK = threading.Lock()
 _INDEX: TerminologyIndex | None = None
 
 
+def _writable_dir(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        probe = path / ".write_test"
+        probe.write_text("ok", encoding="utf-8")
+        probe.unlink()
+    except OSError:
+        return False
+    return True
+
+
+def _cache_dir() -> Path:
+    """Prefer a writable cache. The API image's HOME is not writable."""
+    candidates: list[Path] = []
+    if override := os.environ.get("FHIRATWILL_BINDER_CACHE"):
+        candidates.append(Path(override))
+    if xdg := os.environ.get("XDG_CACHE_HOME"):
+        candidates.append(Path(xdg) / "fhiratwill" / "terminology_binder")
+    candidates.append(Path(tempfile.gettempdir()) / "fhiratwill" / "terminology_binder")
+    for path in candidates:
+        if _writable_dir(path):
+            return path
+    raise TerminologyUnavailableError(
+        "No writable cache directory is available for terminology embeddings.",
+        safe_context={"tried": ",".join(str(item) for item in candidates)},
+    )
+
+
+def _ensure_hf_home() -> None:
+    """Sentence-transformers writes the SapBERT weights under HF_HOME."""
+    current = os.environ.get("HF_HOME")
+    if current and _writable_dir(Path(current)):
+        return
+    fallback = Path(tempfile.gettempdir()) / "huggingface"
+    if _writable_dir(fallback):
+        os.environ["HF_HOME"] = str(fallback)
+
+
 def get_index() -> TerminologyIndex:
     """Return the shared index, building ICD-10-CM embeddings on first use."""
     global _INDEX
@@ -24,7 +65,14 @@ def get_index() -> TerminologyIndex:
         if _INDEX is None:
             logger.info("terminology_index_building")
             try:
-                _INDEX = TerminologyIndex.load(include_default=True, show_progress=False)
+                _ensure_hf_home()
+                _INDEX = TerminologyIndex.load(
+                    include_default=True,
+                    show_progress=False,
+                    cache_dir=_cache_dir(),
+                )
+            except TerminologyUnavailableError:
+                raise
             except Exception as exc:
                 logger.exception("terminology_index_failed")
                 raise TerminologyUnavailableError(

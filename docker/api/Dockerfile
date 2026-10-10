@@ -52,10 +52,19 @@ COPY --from=builder --chown=root:root /build/alembic /app/alembic
 COPY --from=builder --chown=root:root /build/alembic.ini /app/alembic.ini
 COPY --from=builder --chown=root:root /build/scripts /app/scripts
 
+# The process is non-root with HOME=/app. HuggingFace and the binder both
+# write caches; those directories must exist and be owned by fhirbridge or
+# the first /v1/bind call fails closed as terminology-unavailable.
+RUN mkdir -p /var/cache/fhirbridge /var/cache/huggingface \
+    && chown fhirbridge:fhirbridge /var/cache/fhirbridge /var/cache/huggingface
+
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+    PORT=8000 \
+    HF_HOME=/var/cache/huggingface \
+    XDG_CACHE_HOME=/var/cache/fhirbridge \
+    FHIRATWILL_BINDER_CACHE=/var/cache/fhirbridge/terminology_binder
 
 USER fhirbridge
 EXPOSE 8000

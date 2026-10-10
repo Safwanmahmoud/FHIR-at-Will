@@ -47,13 +47,23 @@ def _cache_dir() -> Path:
 
 
 def _ensure_hf_home() -> None:
-    """Sentence-transformers writes the SapBERT weights under HF_HOME."""
+    """Point every HuggingFace cache env var at a writable directory.
+
+    Some releases honor ``HF_HOME``; others still write ``~/.cache/huggingface``.
+    """
     current = os.environ.get("HF_HOME")
-    if current and _writable_dir(Path(current)):
-        return
-    fallback = Path(tempfile.gettempdir()) / "huggingface"
-    if _writable_dir(fallback):
-        os.environ["HF_HOME"] = str(fallback)
+    root = Path(current) if current else Path(tempfile.gettempdir()) / "huggingface"
+    if not _writable_dir(root):
+        root = Path(tempfile.gettempdir()) / "huggingface"
+        if not _writable_dir(root):
+            return
+    hub = root / "hub"
+    _writable_dir(hub)
+    os.environ["HF_HOME"] = str(root)
+    os.environ.setdefault("HF_HUB_CACHE", str(hub))
+    os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(hub))
+    os.environ.setdefault("TRANSFORMERS_CACHE", str(hub))
+    os.environ.setdefault("SENTENCE_TRANSFORMERS_HOME", str(root / "sentence-transformers"))
 
 
 def get_index() -> TerminologyIndex:
@@ -77,7 +87,10 @@ def get_index() -> TerminologyIndex:
                 logger.exception("terminology_index_failed")
                 raise TerminologyUnavailableError(
                     "The nearest-neighbor terminology index could not be loaded.",
-                    safe_context={"reason": type(exc).__name__},
+                    safe_context={
+                        "reason": type(exc).__name__,
+                        "detail": str(exc)[:200],
+                    },
                 ) from exc
             logger.info(
                 "terminology_index_ready",

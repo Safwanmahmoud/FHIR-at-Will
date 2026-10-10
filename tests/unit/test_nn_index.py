@@ -36,7 +36,14 @@ def test_cache_dir_prefers_the_explicit_override(
 
 
 def test_hf_home_falls_back_to_temp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("HF_HOME", raising=False)
+    for name in (
+        "HF_HOME",
+        "HF_HUB_CACHE",
+        "HUGGINGFACE_HUB_CACHE",
+        "TRANSFORMERS_CACHE",
+        "SENTENCE_TRANSFORMERS_HOME",
+    ):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(
         "fhirbridge.terminology.nn_index.tempfile.gettempdir",
         lambda: str(tmp_path),
@@ -44,4 +51,6 @@ def test_hf_home_falls_back_to_temp(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 
     _ensure_hf_home()
 
-    assert Path(os.environ["HF_HOME"]) == tmp_path / "huggingface"
+    root = tmp_path / "huggingface"
+    assert Path(os.environ["HF_HOME"]) == root
+    assert Path(os.environ["HF_HUB_CACHE"]) == root / "hub"

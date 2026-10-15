@@ -66,3 +66,32 @@ depth, not permission to log sensitive values.
 Run the commands in [CONTRIBUTING.md](CONTRIBUTING.md). Security, contract, and
 tenant-isolation tests are release gates. Update public documentation whenever
 behavior, configuration, or operational responsibility changes.
+
+## Cursor Cloud
+
+The Cloud Agent VM does not use Docker Compose. On boot it starts local
+PostgreSQL 16, Redis, the pinned HL7 validator, this API, the landing site,
+and the admin console.
+
+| Service | URL |
+|---|---|
+| API | http://127.0.0.1:8000 |
+| Validator | http://127.0.0.1:8081 |
+| Landing site | http://127.0.0.1:8091 |
+| Landing Vite | http://127.0.0.1:5173 |
+| Admin | http://127.0.0.1:8080 |
+
+`/opt/fhir-dev/README.txt` lists those ports. Synthetic local credentials are
+created there on boot (`api.key`, `api.env`, `admin.password`). They are not
+production secrets. The API process uses `fhirbridge_app`. Do not point it at
+`fhirbridge_owner`: that role owns the schema, and `/readyz` will refuse to
+serve.
+
+Python is 3.12 from the system interpreter. `uv` 0.11.24 is on `PATH`. Refresh
+this repo with `uv sync --frozen --group dev`. The `fhirbridge` library checkout
+has its own `.venv`. Integration tests marked `integration` expect Docker, which
+this VM does not run; use `uv run pytest -q -m "not integration"` here. On
+current `main`, that command stops during collection of
+`tests/unit/test_extraction_rules.py` because published `fhiratwill` 0.4.0 does
+not export `resource_catalog_text` from `fhiratwill.conversion.prompts`. That
+is the same failure as GitHub Actions on `main`.
